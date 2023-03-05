@@ -73,6 +73,10 @@ func ({{.S}} {{.QueryStructName}}Do) Where(conds ...gen.Condition) {{.ReturnObje
 	return {{.S}}.withDO({{.S}}.DO.Where(conds...))
 }
 
+func ({{.S}} {{.QueryStructName}}Do) WhereStruct(get field.GetField,data any) {{.ReturnObject}} {
+	return {{.S}}.withDO({{.S}}.DO.Where(gen.Where(get,data)...))
+}
+
 func ({{.S}} {{.QueryStructName}}Do) Exists(subquery interface{UnderlyingDB() *gorm.DB}) {{.ReturnObject}} {
 	return {{.S}}.Where(field.CompareSubQuery(field.ExistsOp, nil, subquery.UnderlyingDB()))
 }

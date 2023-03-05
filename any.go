@@ -11,19 +11,37 @@ func Where(get field.GetField, value any) []Condition {
 		vl  = reflect.ValueOf(value)
 		ret = make([]Condition, 0)
 	)
+	if vl.Kind() == reflect.Ptr || vl.Kind() == reflect.Interface {
+		if vl.IsNil() {
+			return nil
+		}
+		return Where(get, vl.Elem().Interface())
+	}
 	if t.Kind() != reflect.Struct {
 		return nil
 	}
-	for i := 0; i < t.NumField(); i++ {
+	fields := getAllFields(vl.Type())
+	for _, item := range fields {
 		var (
 			name   string // 查询字段bind的优先级更高，其次是json
 			method string
 			ok     bool
-			item   = t.Field(i)
 			v      any
-			v2     any
 			cond   Condition
+			f      = vl.FieldByIndex(item.Index)
 		)
+		if item.Type.Kind() == reflect.Struct || item.Type.Kind() == reflect.Ptr || item.Type.Kind() == reflect.Interface {
+			if f.Kind() == reflect.Ptr || f.Kind() == reflect.Interface {
+				if f.IsNil() {
+					continue
+				}
+				f = f.Elem()
+			}
+			if ret1 := Where(get, f.Interface()); ret1 != nil {
+				ret = append(ret, ret1...)
+			}
+			continue
+		}
 		if name = item.Tag.Get("bind"); name == "" {
 			if name = item.Tag.Get("json"); name == "" {
 				continue
@@ -32,19 +50,23 @@ func Where(get field.GetField, value any) []Condition {
 		if method = item.Tag.Get("cond"); method == "" {
 			method = "eq"
 		}
-
+		if f.IsZero() {
+			continue
+		}
 		if v, ok = get.GetField(name); !ok {
 			continue
 		}
-		if vl.Field(i).IsZero() {
-			continue
-		}
-		if v2 = vl.Field(i).Interface(); v2 == nil {
-			continue
-		}
-		if cond = field.Any(v, method, v2); cond != nil {
+		if cond = field.Any(v, method, f.Interface()); cond != nil {
 			ret = append(ret, cond)
 		}
 	}
+
 	return ret
+}
+func getAllFields(t reflect.Type) []reflect.StructField {
+	var fields []reflect.StructField
+	for i := 0; i < t.NumField(); i++ {
+		fields = append(fields, t.Field(i))
+	}
+	return fields
 }
