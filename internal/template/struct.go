@@ -71,7 +71,7 @@ const (
 		{{end}}
 	{{end}}
 
-	fieldMap  map[string]field.Expr
+	fieldMap  map[string]any
 `
 	tableMethod = `
 func ({{.S}} {{.QueryStructName}}) Table(newTableName string) *{{.QueryStructName}} { 
@@ -122,6 +122,14 @@ func ({{.S}} *{{.QueryStructName}}) GetFieldByName(fieldName string) (field.Orde
 	_oe,ok := _f.(field.OrderExpr)
 	return _oe,ok
 }
+
+func ({{.S}} *{{.QueryStructName}}) GetField(fieldName string) (any, bool) {
+	_f, ok := {{.S}}.fieldMap[fieldName]
+	if !ok || _f == nil {
+		return nil, false
+	}
+	return _f,ok
+}
 `
 	relationship = `{{range .Fields}}{{if .IsRelation}}` +
 		`{{- $relation := .Relation }}{{- $relationship := $relation.RelationshipName}}` +
@@ -131,7 +139,7 @@ func ({{.S}} *{{.QueryStructName}}) GetFieldByName(fieldName string) (field.Orde
 
 	fillFieldMapMethod = `
 func ({{.S}} *{{.QueryStructName}}) fillFieldMap() {
-	{{.S}}.fieldMap =  make(map[string]field.Expr, {{len .Fields}})
+	{{.S}}.fieldMap =  make(map[string]any, {{len .Fields}})
 	{{range .Fields -}}
 	{{if not .IsRelation -}}
 		{{- if .ColumnName -}}{{$.S}}.fieldMap["{{.ColumnName}}"] = {{$.S}}.{{.Name}}{{- end -}}
