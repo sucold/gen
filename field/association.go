@@ -208,8 +208,8 @@ func wrapPath(root string, rs []Relation) []Relation {
 var defaultRelationshipPrefix = map[RelationshipType]string{
 	// HasOne:    "",
 	BelongsTo: "*",
-	HasMany:   "[]",
-	Many2Many: "[]",
+	HasMany:   "[]*",
+	Many2Many: "[]*",
 }
 
 // RelateConfig config for relationship
