@@ -147,7 +147,7 @@ func Parse() {
 		}
 	}
 	App.Generator = NewGenerator(Config{
-		Mode:              WithDefaultQuery | WithoutContext,
+		Mode:              WithDefaultQuery | WithoutContext | WithQueryInterface,
 		OutPath:           App.OutPath,
 		OutFile:           App.OutFile,
 		ModelPkgPath:      App.ModelPkgName,
