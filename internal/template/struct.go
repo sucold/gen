@@ -80,12 +80,13 @@ func ({{.S}} {{.QueryStructName}}) Table(newTableName string) *{{.QueryStructNam
 }
 `
 
-	asMethond = `	
+	asMethondOLD = `	
 func ({{.S}} {{.QueryStructName}}) As(alias string) *{{.QueryStructName}} { 
 	{{.S}}.{{.QueryStructName}}Do.DO = *({{.S}}.{{.QueryStructName}}Do.As(alias).(*gen.DO))
 	return {{.S}}.updateTableName(alias)
 }
 `
+	asMethond         = ``
 	updateFieldMethod = `
 func ({{.S}} *{{.QueryStructName}}) updateTableName(table string) *{{.QueryStructName}} { 
 	{{.S}}.ALL = field.NewAsterisk(table)
@@ -166,6 +167,7 @@ type I{{.ModelStructName}}Do interface {
 	Or(conds ...gen.Condition) I{{.ModelStructName}}Do
 	Select(conds ...field.Expr) I{{.ModelStructName}}Do
 	Where(conds ...gen.Condition) I{{.ModelStructName}}Do
+	WhereStruct(get field.GetField,data any) I{{.ModelStructName}}Do
 	Order(conds ...field.Expr) I{{.ModelStructName}}Do
 	Distinct(cols ...field.Expr) I{{.ModelStructName}}Do
 	Omit(cols ...field.Expr) I{{.ModelStructName}}Do

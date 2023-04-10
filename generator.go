@@ -304,6 +304,7 @@ func (g *Generator) generateQueryFile() (err error) {
 	errChan := make(chan error)
 	pool := pools.NewPool(concurrent)
 	// generate query code for all struct
+
 	for _, info := range g.Data {
 		pool.Wait()
 		go func(info *genInfo) {
