@@ -72,6 +72,38 @@ func ({{.S}} {{.QueryStructName}}Do) Select(conds ...field.Expr) {{.ReturnObject
 func ({{.S}} {{.QueryStructName}}Do) Where(conds ...gen.Condition) {{.ReturnObject}} {
 	return {{.S}}.withDO({{.S}}.DO.Where(conds...))
 }
+func ({{.S}} {{.QueryStructName}}Do) Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}})  {{.ReturnObject}} {
+	var keys []gen.Condition
+	{{range .Field}}
+	keys = append(keys, field.New{{.CustomGenType}}("{{$.TableName}}", "{{.ColumnName}}").Eq({{.ColumnName}}))
+	{{end}}
+	return {{.S}}.Where(keys...)
+}
+func ({{.S}} {{.QueryStructName}}Do) Get({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+	return {{.S}}.Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}}{{end}}).First()
+}
+
+func ({{.S}} {{.QueryStructName}}Do) MustGet({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}) {
+	data,_ := {{.S}}.Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}}{{end}}).First()
+	return data
+}
+
+func ({{.S}} {{.QueryStructName}}Do) MustDelete({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (err error) {
+	_,err = {{.S}}.Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}}{{end}}).Delete()
+	return
+}
+
+
+{{range .Uniques}}
+var uni_{{$.QueryStructName}}_{{.ColumnName}} = field.New{{.CustomGenType}}("{{$.TableName}}", "{{.ColumnName}}")
+func ({{$.S}} {{$.QueryStructName}}Do) Set{{.Name}}({{.Name}} {{.Type}}) {{$.ReturnObject}}  {
+	return {{$.S}}.Where(uni_{{$.QueryStructName}}_{{.ColumnName}}.Eq({{.Name}}))
+}
+func ({{$.S}} {{$.QueryStructName}}Do) By{{.Name}}({{.Name}} {{.Type}}) (*{{$.StructInfo.Package}}.{{$.StructInfo.Type}})  {
+	data,_:= {{$.S}}.Where(uni_{{$.QueryStructName}}_{{.ColumnName}}.Eq({{.Name}})).First()
+	return data
+}
+{{end}}
 
 func ({{.S}} {{.QueryStructName}}Do) WhereStruct(get field.GetField,data any) {{.ReturnObject}} {
 	return {{.S}}.withDO({{.S}}.DO.Where(gen.Where(get,data)...))

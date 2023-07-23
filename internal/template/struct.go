@@ -167,7 +167,14 @@ type I{{.ModelStructName}}Do interface {
 	Or(conds ...gen.Condition) I{{.ModelStructName}}Do
 	Select(conds ...field.Expr) I{{.ModelStructName}}Do
 	Where(conds ...gen.Condition) I{{.ModelStructName}}Do
-	WhereStruct(get field.GetField,data any) I{{.ModelStructName}}Do
+	Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}})  {{.ReturnObject}}
+	Get({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
+    MustGet({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (*{{.StructInfo.Package}}.{{.StructInfo.Type}})
+	MustDelete({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (err error)
+    {{range .Uniques}}
+	Set{{.Name}}({{.Name}} {{.Type}}) {{$.ReturnObject}}
+	By{{.Name}}({{.Name}} {{.Type}}) (*{{$.StructInfo.Package}}.{{$.StructInfo.Type}}){{end}}
+    WhereStruct(get field.GetField,data any) I{{.ModelStructName}}Do
 	Order(conds ...field.Expr) I{{.ModelStructName}}Do
 	Distinct(cols ...field.Expr) I{{.ModelStructName}}Do
 	Omit(cols ...field.Expr) I{{.ModelStructName}}Do

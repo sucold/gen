@@ -391,7 +391,7 @@ func (g *Generator) generateQueryFile() (err error) {
 // generateSingleQueryFile generate query code and save to file
 func (g *Generator) generateSingleQueryFile(data *genInfo) (err error) {
 	var buf bytes.Buffer
-
+	data.QueryStructMeta.Do()
 	structPkgPath := data.StructInfo.PkgPath
 	if structPkgPath == "" {
 		structPkgPath = g.modelPkgPath
@@ -428,7 +428,7 @@ func (g *Generator) generateSingleQueryFile(data *genInfo) (err error) {
 			return err
 		}
 	}
-
+	data.QueryStructMeta.Do()
 	err = render(tmpl.CRUDMethod, &buf, data.QueryStructMeta)
 	if err != nil {
 		return err

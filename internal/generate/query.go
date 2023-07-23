@@ -3,6 +3,7 @@ package generate
 import (
 	"context"
 	"fmt"
+	"github.com/gogf/gf/v2/text/gstr"
 	"reflect"
 	"strings"
 
@@ -34,11 +35,44 @@ type QueryStructMeta struct {
 	TableName       string // table name in db server
 	StructInfo      parser.Param
 	Fields          []*model.Field
-	Source          model.SourceCode
-	ImportPkgPaths  []string
-	ModelMethods    []*parser.Method // user custom method bind to db base struct
 
-	interfaceMode bool
+	Source         model.SourceCode
+	ImportPkgPaths []string
+	ModelMethods   []*parser.Method // user custom method bind to db base struct
+	Field          []*model.Field
+	Uniques        []*model.Field
+	interfaceMode  bool
+}
+
+func (b *QueryStructMeta) Do() {
+	b.Field = make([]*model.Field, 0)
+	b.Uniques = make([]*model.Field, 0)
+	for _, f := range b.Fields {
+		f.CustomGenType = f.GenType()
+		if gstr.Contains(f.GORMTag, "primaryKey") {
+			b.Field = append(b.Field, f)
+		}
+		if gstr.Contains(f.GORMTag, "uniqueIndex") {
+			b.Uniques = append(b.Uniques, f)
+		}
+		if gstr.Contains(f.NewTag, "unique_do") {
+			b.Uniques = append(b.Uniques, f)
+		}
+		//if len(f.Column.Indexes) > 0 {
+		//	for _, idx := range f.Column.Indexes {
+		//		if uniq, _ := idx.Unique(); uniq {
+		//			if _, ok := b.Uniques[f.ColumnName]; !ok {
+		//				b.Uniques[f.ColumnName] = make([]*model.Field, 0)
+		//			}
+		//			if _, ok := b.Uniques[idx.Name()]; !ok {
+		//				b.Uniques[idx.Name()] = make([]*model.Field, 0)
+		//			}
+		//			b.Uniques[f.ColumnName] = append(b.Uniques[f.ColumnName], f)
+		//			b.Uniques[idx.Name()] = append(b.Uniques[idx.Name()], f)
+		//		}
+		//	}
+		//}
+	}
 }
 
 // parseStruct get all elements of struct with gorm's Parse, ignore unexported elements

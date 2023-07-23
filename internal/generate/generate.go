@@ -40,7 +40,6 @@ func getFields(db *gorm.DB, conf *model.Config, columns []*model.Column) (fields
 		} else if db.NamingStrategy != nil {
 			m.Name = db.NamingStrategy.SchemaName(m.Name)
 		}
-
 		fields = append(fields, m)
 	}
 	for _, create := range conf.CreateOpts {
