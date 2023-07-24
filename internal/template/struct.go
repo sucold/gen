@@ -188,7 +188,7 @@ type I{{.ModelStructName}}Do interface {
 	Count() (count int64, err error)
 	Scopes(funcs ...func(gen.Dao) gen.Dao) I{{.ModelStructName}}Do
 	Unscoped() I{{.ModelStructName}}Do
-	Create(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error
+	Create(values ...any) error
 	CreateInBatches(values []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int) error
 	Save(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error
 	First() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)

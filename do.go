@@ -22,11 +22,11 @@ type ResultInfo struct {
 	Error        error
 }
 
-var _ Dao = new(DO)
+//var _ Dao[T] = new(DO)
 
 // DO (data object): implement basic query methods
 // the structure embedded with a *gorm.DB, and has a element item "alias" will be used when used as a sub query
-type DO struct {
+type DO[T any] struct {
 	*DOConfig
 	db        *gorm.DB
 	alias     string // for subquery
@@ -36,7 +36,7 @@ type DO struct {
 	backfillData interface{}
 }
 
-func (d DO) getInstance(db *gorm.DB) *DO {
+func (d DO[T]) getInstance(db *gorm.DB) *DO[T] {
 	d.db = db
 	return &d
 }
@@ -49,7 +49,7 @@ var (
 )
 
 // UseDB specify a db connection(*gorm.DB)
-func (d *DO) UseDB(db *gorm.DB, opts ...DOOption) {
+func (d *DO[T]) UseDB(db *gorm.DB, opts ...DOOption[T]) {
 	db = db.Session(&gorm.Session{Context: context.Background()})
 	d.db = db
 	config := &DOConfig{}
@@ -64,20 +64,19 @@ func (d *DO) UseDB(db *gorm.DB, opts ...DOOption) {
 }
 
 // ReplaceDB replace db connection
-func (d *DO) ReplaceDB(db *gorm.DB) {
+func (d *DO[T]) ReplaceDB(db *gorm.DB) {
 	d.db = db.Session(&gorm.Session{})
 }
 
 // ReplaceConnPool replace db connection pool
-func (d *DO) ReplaceConnPool(pool gorm.ConnPool) {
+func (d *DO[T]) ReplaceConnPool(pool gorm.ConnPool) {
 	d.db = d.db.Session(&gorm.Session{Initialized: true}).Session(&gorm.Session{})
 	d.db.Statement.ConnPool = pool
 }
 
 // UseModel specify a data model structure as a source for table name
-func (d *DO) UseModel(model interface{}) {
-	d.modelType = d.indirect(model)
-
+func (d *DO[T]) UseModel() {
+	var model = d.indirect(new(T))
 	err := d.db.Statement.Parse(model)
 	if err != nil {
 		panic(fmt.Errorf("Cannot parse model: %+v\n%w", model, err))
@@ -85,7 +84,7 @@ func (d *DO) UseModel(model interface{}) {
 	d.tableName = d.db.Statement.Schema.Table
 }
 
-func (d *DO) indirect(value interface{}) reflect.Type {
+func (d *DO[T]) indirect(value interface{}) reflect.Type {
 	mt := reflect.TypeOf(value)
 	if mt.Kind() == reflect.Ptr {
 		mt = mt.Elem()
@@ -94,19 +93,19 @@ func (d *DO) indirect(value interface{}) reflect.Type {
 }
 
 // UseTable specify table name
-func (d *DO) UseTable(tableName string) {
+func (d *DO[T]) UseTable(tableName string) {
 	d.db = d.db.Table(tableName).Session(new(gorm.Session))
 	//d.db.Statement.Schema.Table=tableName
 	d.tableName = tableName
 }
 
 // TableName return table name
-func (d DO) TableName() string {
+func (d DO[T]) TableName() string {
 	return d.tableName
 }
 
 // Returning backfill data
-func (d DO) Returning(value interface{}, columns ...string) Dao {
+func (d DO[T]) Returning(value interface{}, columns ...string) Dao[T] {
 	d.backfillData = value
 
 	var targetCulumns []clause.Column
@@ -118,33 +117,35 @@ func (d DO) Returning(value interface{}, columns ...string) Dao {
 }
 
 // Session replace db with new session
-func (d *DO) Session(config *gorm.Session) Dao { return d.getInstance(d.db.Session(config)) }
+func (d *DO[T]) Session(config *gorm.Session) Dao[T] { return d.getInstance(d.db.Session(config)) }
 
 // UnderlyingDB return the underlying database connection
-func (d *DO) UnderlyingDB() *gorm.DB { return d.underlyingDB() }
+func (d *DO[T]) UnderlyingDB() *gorm.DB { return d.underlyingDB() }
 
 // Quote return qutoed data
-func (d *DO) Quote(raw string) string { return d.db.Statement.Quote(raw) }
+func (d *DO[T]) Quote(raw string) string { return d.db.Statement.Quote(raw) }
 
 // Build implement the interface of claues.Expression
 // only call WHERE clause's Build
-func (d *DO) Build(builder clause.Builder) {
+func (d *DO[T]) Build(builder clause.Builder) {
 	for _, e := range d.buildCondition() {
 		e.Build(builder)
 	}
 }
 
-func (d *DO) buildCondition() []clause.Expression {
+func (d *DO[T]) buildCondition() []clause.Expression {
 	return d.db.Statement.BuildCondition(d.db)
 }
 
 // underlyingDO return self
-func (d *DO) underlyingDO() *DO { return d }
+func (d *DO[T]) underlyingDO() *DO[T]  { return d }
+func (d *DO[T]) UnderlyingDO2() *DO[T] { return d }
 
 // underlyingDB return self.db
-func (d *DO) underlyingDB() *gorm.DB { return d.db }
+func (d *DO[T]) underlyingDB() *gorm.DB  { return d.db }
+func (d *DO[T]) UnderlyingDB2() *gorm.DB { return d.db }
 
-func (d *DO) withError(err error) *DO {
+func (d *DO[T]) withError(err error) *DO[T] {
 	if err == nil {
 		return d
 	}
@@ -155,19 +156,19 @@ func (d *DO) withError(err error) *DO {
 }
 
 // BeCond implements Condition
-func (d *DO) BeCond() interface{} { return d.buildCondition() }
+func (d *DO[T]) BeCond() interface{} { return d.buildCondition() }
 
 // CondError implements Condition
-func (d *DO) CondError() error { return nil }
+func (d *DO[T]) CondError() error { return nil }
 
 // Debug return a DO with db in debug mode
-func (d *DO) Debug() Dao { return d.getInstance(d.db.Debug()) }
+func (d *DO[T]) Debug() Dao[T] { return d.getInstance(d.db.Debug()) }
 
 // WithContext return a DO with db with context
-func (d *DO) WithContext(ctx context.Context) Dao { return d.getInstance(d.db.WithContext(ctx)) }
+func (d *DO[T]) WithContext(ctx context.Context) Dao[T] { return d.getInstance(d.db.WithContext(ctx)) }
 
 // Clauses specify Clauses
-func (d *DO) Clauses(conds ...clause.Expression) Dao {
+func (d *DO[T]) Clauses(conds ...clause.Expression) Dao[T] {
 	if err := checkConds(conds); err != nil {
 		newDB := d.db.Session(new(gorm.Session))
 		_ = newDB.AddError(err)
@@ -177,22 +178,22 @@ func (d *DO) Clauses(conds ...clause.Expression) Dao {
 }
 
 // As alias cannot be heired, As must used on tail
-func (d DO) As(alias string) Dao {
+func (d DO[T]) As(alias string) Dao[T] {
 	d.alias = alias
 	d.db = d.db.Table(fmt.Sprintf("%s AS %s", d.Quote(d.TableName()), d.Quote(alias)))
 	return &d
 }
 
 // Alias return alias name
-func (d *DO) Alias() string { return d.alias }
+func (d *DO[T]) Alias() string { return d.alias }
 
 // Columns return columns for Subquery
-func (*DO) Columns(cols ...field.Expr) Columns { return cols }
+func (*DO[T]) Columns(cols ...field.Expr) Columns { return cols }
 
 // ======================== chainable api ========================
 
 // Not ...
-func (d *DO) Not(conds ...Condition) Dao {
+func (d *DO[T]) Not(conds ...Condition) Dao[T] {
 	exprs, err := condToExpression(conds)
 	if err != nil {
 		return d.withError(err)
@@ -204,7 +205,7 @@ func (d *DO) Not(conds ...Condition) Dao {
 }
 
 // Or ...
-func (d *DO) Or(conds ...Condition) Dao {
+func (d *DO[T]) Or(conds ...Condition) Dao[T] {
 	exprs, err := condToExpression(conds)
 	if err != nil {
 		return d.withError(err)
@@ -216,7 +217,7 @@ func (d *DO) Or(conds ...Condition) Dao {
 }
 
 // Select ...
-func (d *DO) Select(columns ...field.Expr) Dao {
+func (d *DO[T]) Select(columns ...field.Expr) Dao[T] {
 	if len(columns) == 0 {
 		return d.getInstance(d.db.Clauses(clause.Select{}))
 	}
@@ -225,7 +226,7 @@ func (d *DO) Select(columns ...field.Expr) Dao {
 }
 
 // Where ...
-func (d *DO) Where(conds ...Condition) Dao {
+func (d *DO[T]) Where(conds ...Condition) Dao[T] {
 	exprs, err := condToExpression(conds)
 	if err != nil {
 		return d.withError(err)
@@ -237,7 +238,7 @@ func (d *DO) Where(conds ...Condition) Dao {
 }
 
 // Order ...
-func (d *DO) Order(columns ...field.Expr) Dao {
+func (d *DO[T]) Order(columns ...field.Expr) Dao[T] {
 	// lazy build Columns
 	// if c, ok := d.db.Statement.Clauses[clause.OrderBy{}.Name()]; ok {
 	// 	if order, ok := c.Expression.(clause.OrderBy); ok {
@@ -254,7 +255,7 @@ func (d *DO) Order(columns ...field.Expr) Dao {
 	return d.getInstance(d.db.Order(d.toOrderValue(columns...)))
 }
 
-func (d *DO) toOrderValue(columns ...field.Expr) string {
+func (d *DO[T]) toOrderValue(columns ...field.Expr) string {
 	// eager build Columns
 	stmt := &gorm.Statement{DB: d.db.Statement.DB, Table: d.db.Statement.Table, Schema: d.db.Statement.Schema}
 
@@ -269,12 +270,12 @@ func (d *DO) toOrderValue(columns ...field.Expr) string {
 }
 
 // Distinct ...
-func (d *DO) Distinct(columns ...field.Expr) Dao {
+func (d *DO[T]) Distinct(columns ...field.Expr) Dao[T] {
 	return d.getInstance(d.db.Distinct(toInterfaceSlice(toColExprFullName(d.db.Statement, columns...))...))
 }
 
 // Omit ...
-func (d *DO) Omit(columns ...field.Expr) Dao {
+func (d *DO[T]) Omit(columns ...field.Expr) Dao[T] {
 	if len(columns) == 0 {
 		return d
 	}
@@ -282,7 +283,7 @@ func (d *DO) Omit(columns ...field.Expr) Dao {
 }
 
 // Group ...
-func (d *DO) Group(columns ...field.Expr) Dao {
+func (d *DO[T]) Group(columns ...field.Expr) Dao[T] {
 	if len(columns) == 0 {
 		return d
 	}
@@ -300,7 +301,7 @@ func (d *DO) Group(columns ...field.Expr) Dao {
 }
 
 // Having ...
-func (d *DO) Having(conds ...Condition) Dao {
+func (d *DO[T]) Having(conds ...Condition) Dao[T] {
 	exprs, err := condToExpression(conds)
 	if err != nil {
 		return d.withError(err)
@@ -312,46 +313,46 @@ func (d *DO) Having(conds ...Condition) Dao {
 }
 
 // Limit ...
-func (d *DO) Limit(limit int) Dao {
+func (d *DO[T]) Limit(limit int) Dao[T] {
 	return d.getInstance(d.db.Limit(limit))
 }
 
 // Offset ...
-func (d *DO) Offset(offset int) Dao {
+func (d *DO[T]) Offset(offset int) Dao[T] {
 	return d.getInstance(d.db.Offset(offset))
 }
 
 // Scopes ...
-func (d *DO) Scopes(funcs ...func(Dao) Dao) Dao {
+func (d *DO[T]) Scopes(funcs ...func(Dao[T]) Dao[T]) Dao[T] {
 	fcs := make([]func(*gorm.DB) *gorm.DB, len(funcs))
 	for i, f := range funcs {
 		sf := f
-		fcs[i] = func(tx *gorm.DB) *gorm.DB { return sf(d.getInstance(tx)).(*DO).db }
+		fcs[i] = func(tx *gorm.DB) *gorm.DB { return sf(d.getInstance(tx)).(*DO[T]).db }
 	}
 	return d.getInstance(d.db.Scopes(fcs...))
 }
 
 // Unscoped ...
-func (d *DO) Unscoped() Dao {
+func (d *DO[T]) Unscoped() Dao[T] {
 	return d.getInstance(d.db.Unscoped())
 }
 
 // Join ...
-func (d *DO) Join(table schema.Tabler, conds ...field.Expr) Dao {
+func (d *DO[T]) Join(table schema.Tabler, conds ...field.Expr) Dao[T] {
 	return d.join(table, clause.InnerJoin, conds)
 }
 
 // LeftJoin ...
-func (d *DO) LeftJoin(table schema.Tabler, conds ...field.Expr) Dao {
+func (d *DO[T]) LeftJoin(table schema.Tabler, conds ...field.Expr) Dao[T] {
 	return d.join(table, clause.LeftJoin, conds)
 }
 
 // RightJoin ...
-func (d *DO) RightJoin(table schema.Tabler, conds ...field.Expr) Dao {
+func (d *DO[T]) RightJoin(table schema.Tabler, conds ...field.Expr) Dao[T] {
 	return d.join(table, clause.RightJoin, conds)
 }
 
-func (d *DO) join(table schema.Tabler, joinType clause.JoinType, conds []field.Expr) Dao {
+func (d *DO[T]) join(table schema.Tabler, joinType clause.JoinType, conds []field.Expr) Dao[T] {
 	if len(conds) == 0 {
 		return d.withError(ErrEmptyCondition)
 	}
@@ -361,8 +362,8 @@ func (d *DO) join(table schema.Tabler, joinType clause.JoinType, conds []field.E
 		Table: clause.Table{Name: table.TableName()},
 		ON:    clause.Where{Exprs: toExpression(conds...)},
 	}
-	if do, ok := table.(Dao); ok {
-		join.Expression = helper.NewJoinTblExpr(join, Table(do).underlyingDB().Statement.TableExpr)
+	if do, ok := table.(Dao[T]); ok {
+		join.Expression = helper.NewJoinTblExpr(join, Table[T](do).underlyingDB().Statement.TableExpr)
 	}
 	if al, ok := table.(interface{ Alias() string }); ok {
 		join.Table.Alias = al.Alias()
@@ -374,7 +375,7 @@ func (d *DO) join(table schema.Tabler, joinType clause.JoinType, conds []field.E
 }
 
 // Attrs ...
-func (d *DO) Attrs(attrs ...field.AssignExpr) Dao {
+func (d *DO[T]) Attrs(attrs ...field.AssignExpr) Dao[T] {
 	if len(attrs) == 0 {
 		return d
 	}
@@ -382,14 +383,14 @@ func (d *DO) Attrs(attrs ...field.AssignExpr) Dao {
 }
 
 // Assign ...
-func (d *DO) Assign(attrs ...field.AssignExpr) Dao {
+func (d *DO[T]) Assign(attrs ...field.AssignExpr) Dao[T] {
 	if len(attrs) == 0 {
 		return d
 	}
 	return d.getInstance(d.db.Assign(d.attrsValue(attrs)...))
 }
 
-func (d *DO) attrsValue(attrs []field.AssignExpr) []interface{} {
+func (d *DO[T]) attrsValue(attrs []field.AssignExpr) []interface{} {
 	values := make([]interface{}, 0, len(attrs))
 	for _, attr := range attrs {
 		if expr, ok := attr.AssignExpr().(clause.Eq); ok {
@@ -400,7 +401,7 @@ func (d *DO) attrsValue(attrs []field.AssignExpr) []interface{} {
 }
 
 // Joins ...
-func (d *DO) Joins(field field.RelationField) Dao {
+func (d *DO[T]) Joins(field field.RelationField) Dao[T] {
 	var args []interface{}
 
 	if conds := field.GetConds(); len(conds) > 0 {
@@ -509,7 +510,7 @@ func (d *DO) Joins(field field.RelationField) Dao {
 }
 
 // Preload ...
-func (d *DO) Preload(field field.RelationField) Dao {
+func (d *DO[T]) Preload(field field.RelationField) Dao[T] {
 	var args []interface{}
 	if conds := field.GetConds(); len(conds) > 0 {
 		args = append(args, toExpressionInterface(conds...)...)
@@ -547,7 +548,7 @@ func (d *DO) Preload(field field.RelationField) Dao {
 }
 
 // UpdateFrom specify update sub query
-func (d *DO) UpdateFrom(q SubQuery) Dao {
+func (d *DO[T]) UpdateFrom(q SubQuery[T]) Dao[T] {
 	var tableName strings.Builder
 	d.db.Statement.QuoteTo(&tableName, d.TableName())
 	if d.alias != "" {
@@ -587,91 +588,77 @@ func getFromClause(db *gorm.DB) *clause.From {
 // ======================== finisher api ========================
 
 // Create ...
-func (d *DO) Create(value interface{}) error {
+func (d *DO[T]) Create(value ...*T) error {
 	return d.db.Create(value).Error
 }
 
 // CreateInBatches ...
-func (d *DO) CreateInBatches(value interface{}, batchSize int) error {
+func (d *DO[T]) CreateInBatches(value []*T, batchSize int) error {
 	return d.db.CreateInBatches(value, batchSize).Error
 }
 
 // Save ...
-func (d *DO) Save(value interface{}) error {
+func (d *DO[T]) Save(value ...*T) error {
 	return d.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(value).Error
 }
 
 // First ...
-func (d *DO) First() (result interface{}, err error) {
+func (d *DO[T]) First() (result *T, err error) {
 	return d.singleQuery(d.db.First)
 }
 
 // Take ...
-func (d *DO) Take() (result interface{}, err error) {
+func (d *DO[T]) Take() (result *T, err error) {
 	return d.singleQuery(d.db.Take)
 }
 
 // Last ...
-func (d *DO) Last() (result interface{}, err error) {
+func (d *DO[T]) Last() (result *T, err error) {
 	return d.singleQuery(d.db.Last)
 }
 
-func (d *DO) singleQuery(query func(dest interface{}, conds ...interface{}) *gorm.DB) (result interface{}, err error) {
-	if d.modelType == nil {
-		return d.singleScan()
-	}
-
-	result = d.newResultPointer()
-	if err := query(result).Error; err != nil {
+func (d *DO[T]) singleQuery(query func(dest interface{}, conds ...interface{}) *gorm.DB) (result *T, err error) {
+	result = new(T)
+	if err = query(result).Error; err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (d *DO) singleScan() (result interface{}, err error) {
-	result = map[string]interface{}{}
-	err = d.db.Scan(result).Error
-	return
-}
-
 // Find ...
-func (d *DO) Find() (results interface{}, err error) {
+func (d *DO[T]) Find() (results []*T, err error) {
 	return d.multiQuery(d.db.Find)
 }
 
-func (d *DO) multiQuery(query func(dest interface{}, conds ...interface{}) *gorm.DB) (results interface{}, err error) {
-	if d.modelType == nil {
-		return d.findToMap()
-	}
-
-	resultsPtr := d.newResultSlicePointer()
-	err = query(resultsPtr).Error
-	return reflect.Indirect(reflect.ValueOf(resultsPtr)).Interface(), err
+func (d *DO[T]) multiQuery(query func(dest interface{}, conds ...interface{}) *gorm.DB) (results []*T, err error) {
+	results = make([]*T, 0)
+	err = query(&results).Error
+	return results, err
 }
 
-func (d *DO) findToMap() (interface{}, error) {
+func (d *DO[T]) findToMap() (interface{}, error) {
 	var results []map[string]interface{}
 	err := d.db.Find(&results).Error
 	return results, err
 }
 
 // FindInBatches ...
-func (d *DO) FindInBatches(dest interface{}, batchSize int, fc func(tx Dao, batch int) error) error {
+func (d *DO[T]) FindInBatches(dest interface{}, batchSize int, fc func(tx Dao[T], batch int) error) error {
 	return d.db.FindInBatches(dest, batchSize, func(tx *gorm.DB, batch int) error { return fc(d.getInstance(tx), batch) }).Error
 }
 
 // FirstOrInit ...
-func (d *DO) FirstOrInit() (result interface{}, err error) {
+func (d *DO[T]) FirstOrInit() (result *T, err error) {
 	return d.singleQuery(d.db.FirstOrInit)
 }
 
 // FirstOrCreate ...
-func (d *DO) FirstOrCreate() (result interface{}, err error) {
+func (d *DO[T]) FirstOrCreate() (result *T, err error) {
 	return d.singleQuery(d.db.FirstOrCreate)
 }
 
 // Update ...
-func (d *DO) Update(column field.Expr, value interface{}) (info ResultInfo, err error) {
+func (d *DO[T]) Update(column field.Expr, value interface{}) (info ResultInfo, err error) {
 	tx := d.db.Model(d.newResultPointer())
 	columnStr := column.BuildColumn(d.db.Statement, field.WithoutQuote).String()
 
@@ -679,7 +666,7 @@ func (d *DO) Update(column field.Expr, value interface{}) (info ResultInfo, err 
 	switch value := value.(type) {
 	case field.AssignExpr:
 		result = tx.Update(columnStr, value.AssignExpr())
-	case SubQuery:
+	case SubQuery[T]:
 		result = tx.Update(columnStr, value.underlyingDB())
 	default:
 		result = tx.Update(columnStr, value)
@@ -688,7 +675,7 @@ func (d *DO) Update(column field.Expr, value interface{}) (info ResultInfo, err 
 }
 
 // UpdateSimple ...
-func (d *DO) UpdateSimple(columns ...field.AssignExpr) (info ResultInfo, err error) {
+func (d *DO[T]) UpdateSimple(columns ...field.AssignExpr) (info ResultInfo, err error) {
 	if len(columns) == 0 {
 		return
 	}
@@ -698,7 +685,7 @@ func (d *DO) UpdateSimple(columns ...field.AssignExpr) (info ResultInfo, err err
 }
 
 // Updates ...
-func (d *DO) Updates(value interface{}) (info ResultInfo, err error) {
+func (d *DO[T]) Updates(value interface{}) (info ResultInfo, err error) {
 	var rawTyp, valTyp reflect.Type
 
 	rawTyp = reflect.TypeOf(value)
@@ -728,7 +715,7 @@ func (d *DO) Updates(value interface{}) (info ResultInfo, err error) {
 }
 
 // UpdateColumn ...
-func (d *DO) UpdateColumn(column field.Expr, value interface{}) (info ResultInfo, err error) {
+func (d *DO[T]) UpdateColumn(column field.Expr, value interface{}) (info ResultInfo, err error) {
 	tx := d.db.Model(d.newResultPointer())
 	columnStr := column.BuildColumn(d.db.Statement, field.WithoutQuote).String()
 
@@ -736,7 +723,7 @@ func (d *DO) UpdateColumn(column field.Expr, value interface{}) (info ResultInfo
 	switch value := value.(type) {
 	case field.Expr:
 		result = tx.UpdateColumn(columnStr, value.RawExpr())
-	case SubQuery:
+	case SubQuery[T]:
 		result = d.db.UpdateColumn(columnStr, value.underlyingDB())
 	default:
 		result = d.db.UpdateColumn(columnStr, value)
@@ -745,7 +732,7 @@ func (d *DO) UpdateColumn(column field.Expr, value interface{}) (info ResultInfo
 }
 
 // UpdateColumnSimple ...
-func (d *DO) UpdateColumnSimple(columns ...field.AssignExpr) (info ResultInfo, err error) {
+func (d *DO[T]) UpdateColumnSimple(columns ...field.AssignExpr) (info ResultInfo, err error) {
 	if len(columns) == 0 {
 		return
 	}
@@ -755,13 +742,13 @@ func (d *DO) UpdateColumnSimple(columns ...field.AssignExpr) (info ResultInfo, e
 }
 
 // UpdateColumns ...
-func (d *DO) UpdateColumns(value interface{}) (info ResultInfo, err error) {
+func (d *DO[T]) UpdateColumns(value interface{}) (info ResultInfo, err error) {
 	result := d.db.Model(d.newResultPointer()).UpdateColumns(value)
 	return ResultInfo{RowsAffected: result.RowsAffected, Error: result.Error}, result.Error
 }
 
 // assignSet fetch all set
-func (d *DO) assignSet(exprs []field.AssignExpr) (set clause.Set) {
+func (d *DO[T]) assignSet(exprs []field.AssignExpr) (set clause.Set) {
 	for _, expr := range exprs {
 		column := clause.Column{Table: d.alias, Name: string(expr.ColumnName())}
 		switch e := expr.AssignExpr().(type) {
@@ -780,7 +767,7 @@ func (d *DO) assignSet(exprs []field.AssignExpr) (set clause.Set) {
 }
 
 // Delete ...
-func (d *DO) Delete(models ...interface{}) (info ResultInfo, err error) {
+func (d *DO[T]) Delete(models ...*T) (info ResultInfo, err error) {
 	var result *gorm.DB
 	if len(models) == 0 || reflect.ValueOf(models[0]).Len() == 0 {
 		result = d.db.Model(d.newResultPointer()).Delete(reflect.New(d.modelType).Interface())
@@ -796,43 +783,43 @@ func (d *DO) Delete(models ...interface{}) (info ResultInfo, err error) {
 }
 
 // Count ...
-func (d *DO) Count() (count int64, err error) {
+func (d *DO[T]) Count() (count int64, err error) {
 	return count, d.db.Session(&gorm.Session{}).Model(d.newResultPointer()).Count(&count).Error
 }
 
 // Row ...
-func (d *DO) Row() *sql.Row {
+func (d *DO[T]) Row() *sql.Row {
 	return d.db.Model(d.newResultPointer()).Row()
 }
 
 // Rows ...
-func (d *DO) Rows() (*sql.Rows, error) {
+func (d *DO[T]) Rows() (*sql.Rows, error) {
 	return d.db.Model(d.newResultPointer()).Rows()
 }
 
 // Scan ...
-func (d *DO) Scan(dest interface{}) error {
+func (d *DO[T]) Scan(dest interface{}) error {
 	return d.db.Model(d.newResultPointer()).Scan(dest).Error
 }
 
 // Pluck ...
-func (d *DO) Pluck(column field.Expr, dest interface{}) error {
+func (d *DO[T]) Pluck(column field.Expr, dest interface{}) error {
 	return d.db.Model(d.newResultPointer()).Pluck(column.ColumnName().String(), dest).Error
 }
 
 // ScanRows ...
-func (d *DO) ScanRows(rows *sql.Rows, dest interface{}) error {
+func (d *DO[T]) ScanRows(rows *sql.Rows, dest interface{}) error {
 	return d.db.Model(d.newResultPointer()).ScanRows(rows, dest)
 }
 
 // WithResult ...
-func (d DO) WithResult(fc func(tx Dao)) ResultInfo {
+func (d DO[T]) WithResult(fc func(tx Dao[T])) ResultInfo {
 	d.db = d.db.Set("", "")
 	fc(&d)
 	return ResultInfo{RowsAffected: d.db.RowsAffected, Error: d.db.Error}
 }
 
-func (d *DO) newResultPointer() interface{} {
+func (d *DO[T]) newResultPointer() interface{} {
 	if d.backfillData != nil {
 		return d.backfillData
 	}
@@ -842,7 +829,7 @@ func (d *DO) newResultPointer() interface{} {
 	return reflect.New(d.modelType).Interface()
 }
 
-func (d *DO) newResultSlicePointer() interface{} {
+func (d *DO[T]) newResultSlicePointer() interface{} {
 	return reflect.New(reflect.SliceOf(reflect.PtrTo(d.modelType))).Interface()
 }
 
@@ -946,11 +933,10 @@ func toInterfaceSlice(value interface{}) []interface{} {
 // the above usage is equivalent to SQL statement:
 //
 //	SELECT * FROM (SELECT `id`, `name` FROM `users_info` WHERE `age` > ?)"
-func Table(subQueries ...SubQuery) Dao {
+func Table[T any](subQueries ...SubQuery[T]) Dao[T] {
 	if len(subQueries) == 0 {
-		return &DO{}
+		return &DO[T]{}
 	}
-
 	tablePlaceholder := make([]string, len(subQueries))
 	tableExprs := make([]interface{}, len(subQueries))
 	for i, query := range subQueries {
@@ -964,9 +950,8 @@ func Table(subQueries ...SubQuery) Dao {
 		}
 	}
 
-	return &DO{
-		db: subQueries[0].underlyingDO().db.Session(&gorm.Session{NewDB: true}).
-			Table(strings.Join(tablePlaceholder, ", "), tableExprs...),
+	return &DO[T]{
+		db: subQueries[0].underlyingDO().db.Session(&gorm.Session{NewDB: true}).Table(strings.Join(tablePlaceholder, ", "), tableExprs...),
 	}
 }
 
@@ -976,7 +961,7 @@ func Table(subQueries ...SubQuery) Dao {
 type Columns []field.Expr
 
 // Set assign value by subquery
-func (cs Columns) Set(query SubQuery) field.AssignExpr {
+func (cs Columns) Set(query SubQuery[T]) field.AssignExpr {
 	return field.AssignSubQuery(cs, query.underlyingDB())
 }
 
@@ -989,7 +974,7 @@ func (cs Columns) In(queryOrValue Condition) field.Expr {
 	switch query := queryOrValue.(type) {
 	case field.Value:
 		return field.ContainsValue(cs, query)
-	case SubQuery:
+	case SubQuery[T]:
 		return field.ContainsSubQuery(cs, query.underlyingDB())
 	default:
 		return field.EmptyExpr()
@@ -1002,7 +987,7 @@ func (cs Columns) NotIn(queryOrValue Condition) field.Expr {
 }
 
 // Eq ...
-func (cs Columns) Eq(query SubQuery) field.Expr {
+func (cs Columns) Eq(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
@@ -1010,7 +995,7 @@ func (cs Columns) Eq(query SubQuery) field.Expr {
 }
 
 // Neq ...
-func (cs Columns) Neq(query SubQuery) field.Expr {
+func (cs Columns) Neq(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
@@ -1018,7 +1003,7 @@ func (cs Columns) Neq(query SubQuery) field.Expr {
 }
 
 // Gt ...
-func (cs Columns) Gt(query SubQuery) field.Expr {
+func (cs Columns) Gt(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
@@ -1026,7 +1011,7 @@ func (cs Columns) Gt(query SubQuery) field.Expr {
 }
 
 // Gte ...
-func (cs Columns) Gte(query SubQuery) field.Expr {
+func (cs Columns) Gte(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
@@ -1034,7 +1019,7 @@ func (cs Columns) Gte(query SubQuery) field.Expr {
 }
 
 // Lt ...
-func (cs Columns) Lt(query SubQuery) field.Expr {
+func (cs Columns) Lt(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
@@ -1042,7 +1027,7 @@ func (cs Columns) Lt(query SubQuery) field.Expr {
 }
 
 // Lte ...
-func (cs Columns) Lte(query SubQuery) field.Expr {
+func (cs Columns) Lte(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}

@@ -48,7 +48,10 @@ func (b *QueryStructMeta) Do() {
 	b.Field = make([]*model.Field, 0)
 	b.Uniques = make([]*model.Field, 0)
 	for _, f := range b.Fields {
-		f.CustomGenType = f.GenType()
+		if !f.IsSystemType() {
+			continue
+		}
+
 		if gstr.Contains(f.GORMTag, "primaryKey") {
 			b.Field = append(b.Field, f)
 		}
@@ -58,20 +61,6 @@ func (b *QueryStructMeta) Do() {
 		if gstr.Contains(f.NewTag, "unique_do") {
 			b.Uniques = append(b.Uniques, f)
 		}
-		//if len(f.Column.Indexes) > 0 {
-		//	for _, idx := range f.Column.Indexes {
-		//		if uniq, _ := idx.Unique(); uniq {
-		//			if _, ok := b.Uniques[f.ColumnName]; !ok {
-		//				b.Uniques[f.ColumnName] = make([]*model.Field, 0)
-		//			}
-		//			if _, ok := b.Uniques[idx.Name()]; !ok {
-		//				b.Uniques[idx.Name()] = make([]*model.Field, 0)
-		//			}
-		//			b.Uniques[f.ColumnName] = append(b.Uniques[f.ColumnName], f)
-		//			b.Uniques[idx.Name()] = append(b.Uniques[idx.Name()], f)
-		//		}
-		//	}
-		//}
 	}
 }
 

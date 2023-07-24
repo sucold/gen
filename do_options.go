@@ -1,9 +1,9 @@
 package gen
 
 // DOOption gorm option interface
-type DOOption interface {
+type DOOption[T any] interface {
 	Apply(*DOConfig) error
-	AfterInitialize(*DO) error
+	AfterInitialize(*DO[T]) error
 }
 
 type DOConfig struct {
@@ -18,6 +18,6 @@ func (c *DOConfig) Apply(config *DOConfig) error {
 }
 
 // AfterInitialize initialize plugins after db connected
-func (c *DOConfig) AfterInitialize(db *DO) error {
+func (c *DOConfig) AfterInitialize(db *DO[T]) error {
 	return nil
 }

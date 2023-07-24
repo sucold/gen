@@ -50,7 +50,7 @@ func condToExpression(conds []Condition) ([]clause.Expression, error) {
 		}
 
 		switch cond.(type) {
-		case *condContainer, field.Expr, SubQuery:
+		case *condContainer, field.Expr, SubQuery[T]:
 		default:
 			return nil, fmt.Errorf("unsupported condition: %+v", cond)
 		}

@@ -75,7 +75,7 @@ func ({{.S}} {{.QueryStructName}}Do) Where(conds ...gen.Condition) {{.ReturnObje
 func ({{.S}} {{.QueryStructName}}Do) Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}})  {{.ReturnObject}} {
 	var keys []gen.Condition
 	{{range .Field}}
-	keys = append(keys, field.New{{.CustomGenType}}("{{$.TableName}}", "{{.ColumnName}}").Eq({{.ColumnName}}))
+	keys = append(keys, field.New{{.GenType}}("{{$.TableName}}", "{{.ColumnName}}").Eq({{.ColumnName}}))
 	{{end}}
 	return {{.S}}.Where(keys...)
 }
@@ -95,7 +95,7 @@ func ({{.S}} {{.QueryStructName}}Do) MustDelete({{range $index, $element := .Fie
 
 
 {{range .Uniques}}
-var uni_{{$.QueryStructName}}_{{.ColumnName}} = field.New{{.CustomGenType}}("{{$.TableName}}", "{{.ColumnName}}")
+var uni_{{$.QueryStructName}}_{{.ColumnName}} = field.New{{.GenType}}("{{$.TableName}}", "{{.ColumnName}}")
 func ({{$.S}} {{$.QueryStructName}}Do) Set{{.Name}}({{.Name}} {{.Type}}) {{$.ReturnObject}}  {
 	return {{$.S}}.Where(uni_{{$.QueryStructName}}_{{.ColumnName}}.Eq({{.Name}}))
 }
@@ -161,11 +161,15 @@ func ({{.S}} {{.QueryStructName}}Do) Unscoped() {{.ReturnObject}} {
 	return {{.S}}.withDO({{.S}}.DO.Unscoped())
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Create(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error {
+func ({{.S}} {{.QueryStructName}}Do) Create(values ...any) error {
 	if len(values) == 0 {
 		return nil
 	}
-	return {{.S}}.DO.Create(values)
+	var data = make([]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, len(values))
+	if err := gconv.Scan(values, &data); err != nil {
+		return err
+	}
+	return {{.S}}.DO.Create(data)
 }
 
 func ({{.S}} {{.QueryStructName}}Do) CreateInBatches(values []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int) error {
