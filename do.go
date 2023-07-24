@@ -125,9 +125,6 @@ func (d DO[T]) Returning(value interface{}, columns ...string) Dao[T] {
 // Session replace db with new session
 func (d *DO[T]) Session(config *gorm.Session) Dao[T] { return d.getInstance(d.db.Session(config)) }
 
-// UnderlyingDB return the underlying database connection
-func (d *DO[T]) UnderlyingDB() *gorm.DB { return d.underlyingDB() }
-
 // Quote return qutoed data
 func (d *DO[T]) Quote(raw string) string { return d.db.Statement.Quote(raw) }
 
@@ -143,11 +140,11 @@ func (d *DO[T]) buildCondition() []clause.Expression {
 	return d.db.Statement.BuildCondition(d.db)
 }
 
-// underlyingDO return self
-func (d *DO[T]) underlyingDO() *DO[T] { return d }
+// UnderlyingDO return self
+func (d *DO[T]) UnderlyingDO() *DO[T] { return d }
 
-// underlyingDB return self.db
-func (d *DO[T]) underlyingDB() *gorm.DB { return d.db }
+// UnderlyingDB return self.db
+func (d *DO[T]) UnderlyingDB() *gorm.DB { return d.db }
 
 func (d *DO[T]) withError(err error) *DO[T] {
 	if err == nil {
@@ -367,7 +364,7 @@ func (d *DO[T]) join(table schema.Tabler, joinType clause.JoinType, conds []fiel
 		ON:    clause.Where{Exprs: toExpression(conds...)},
 	}
 	if do, ok := table.(Dao[T]); ok {
-		join.Expression = helper.NewJoinTblExpr(join, Table[T](do).underlyingDB().Statement.TableExpr)
+		join.Expression = helper.NewJoinTblExpr(join, Table[T](do).UnderlyingDB().Statement.TableExpr)
 	}
 	if al, ok := table.(interface{ Alias() string }); ok {
 		join.Table.Alias = al.Alias()
@@ -561,12 +558,12 @@ func (d *DO[T]) UpdateFrom(q SubQuery[T]) Dao[T] {
 	}
 
 	tableName.WriteByte(',')
-	if _, ok := q.underlyingDB().Statement.Clauses["SELECT"]; ok || len(q.underlyingDB().Statement.Selects) > 0 {
-		tableName.WriteString("(" + q.underlyingDB().ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Table(q.underlyingDO().TableName()).Find(nil) }) + ")")
+	if _, ok := q.UnderlyingDB().Statement.Clauses["SELECT"]; ok || len(q.UnderlyingDB().Statement.Selects) > 0 {
+		tableName.WriteString("(" + q.UnderlyingDB().ToSQL(func(tx *gorm.DB) *gorm.DB { return tx.Table(q.UnderlyingDO().TableName()).Find(nil) }) + ")")
 	} else {
-		d.db.Statement.QuoteTo(&tableName, q.underlyingDO().TableName())
+		d.db.Statement.QuoteTo(&tableName, q.UnderlyingDO().TableName())
 	}
-	if alias := q.underlyingDO().alias; alias != "" {
+	if alias := q.UnderlyingDO().alias; alias != "" {
 		tableName.WriteString(" AS ")
 		d.db.Statement.QuoteTo(&tableName, alias)
 	}
@@ -671,7 +668,7 @@ func (d *DO[T]) Update(column field.Expr, value interface{}) (info ResultInfo, e
 	case field.AssignExpr:
 		result = tx.Update(columnStr, value.AssignExpr())
 	case SubQuery[T]:
-		result = tx.Update(columnStr, value.underlyingDB())
+		result = tx.Update(columnStr, value.UnderlyingDB())
 	default:
 		result = tx.Update(columnStr, value)
 	}
@@ -728,7 +725,7 @@ func (d *DO[T]) UpdateColumn(column field.Expr, value interface{}) (info ResultI
 	case field.Expr:
 		result = tx.UpdateColumn(columnStr, value.RawExpr())
 	case SubQuery[T]:
-		result = d.db.UpdateColumn(columnStr, value.underlyingDB())
+		result = d.db.UpdateColumn(columnStr, value.UnderlyingDB())
 	default:
 		result = d.db.UpdateColumn(columnStr, value)
 	}

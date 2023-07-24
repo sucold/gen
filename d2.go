@@ -117,7 +117,7 @@ func Table[T any](subQueries ...SubQuery[T]) Dao[T] {
 	for i, query := range subQueries {
 		tablePlaceholder[i] = "(?)"
 
-		do := query.underlyingDO()
+		do := query.UnderlyingDO()
 		// ignore alias, or will misuse with sub query alias
 		tableExprs[i] = do.db.Table(do.TableName())
 		if do.alias != "" {
@@ -126,7 +126,7 @@ func Table[T any](subQueries ...SubQuery[T]) Dao[T] {
 	}
 
 	return &DO[T]{
-		db: subQueries[0].underlyingDO().db.Session(&gorm.Session{NewDB: true}).Table(strings.Join(tablePlaceholder, ", "), tableExprs...),
+		db: subQueries[0].UnderlyingDO().db.Session(&gorm.Session{NewDB: true}).Table(strings.Join(tablePlaceholder, ", "), tableExprs...),
 	}
 }
 
@@ -137,7 +137,7 @@ type Columns []field.Expr
 
 // Set assign value by subquery
 func (cs Columns) Set(query SubQuery[T]) field.AssignExpr {
-	return field.AssignSubQuery(cs, query.underlyingDB())
+	return field.AssignSubQuery(cs, query.UnderlyingDB())
 }
 
 // In accept query or value
@@ -150,7 +150,7 @@ func (cs Columns) In(queryOrValue Condition) field.Expr {
 	case field.Value:
 		return field.ContainsValue(cs, query)
 	case SubQuery[T]:
-		return field.ContainsSubQuery(cs, query.underlyingDB())
+		return field.ContainsSubQuery(cs, query.UnderlyingDB())
 	default:
 		return field.EmptyExpr()
 	}
@@ -166,7 +166,7 @@ func (cs Columns) Eq(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
-	return field.CompareSubQuery(field.EqOp, cs[0], query.underlyingDB())
+	return field.CompareSubQuery(field.EqOp, cs[0], query.UnderlyingDB())
 }
 
 // Neq ...
@@ -174,7 +174,7 @@ func (cs Columns) Neq(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
-	return field.CompareSubQuery(field.NeqOp, cs[0], query.underlyingDB())
+	return field.CompareSubQuery(field.NeqOp, cs[0], query.UnderlyingDB())
 }
 
 // Gt ...
@@ -182,7 +182,7 @@ func (cs Columns) Gt(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
-	return field.CompareSubQuery(field.GtOp, cs[0], query.underlyingDB())
+	return field.CompareSubQuery(field.GtOp, cs[0], query.UnderlyingDB())
 }
 
 // Gte ...
@@ -190,7 +190,7 @@ func (cs Columns) Gte(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
-	return field.CompareSubQuery(field.GteOp, cs[0], query.underlyingDB())
+	return field.CompareSubQuery(field.GteOp, cs[0], query.UnderlyingDB())
 }
 
 // Lt ...
@@ -198,7 +198,7 @@ func (cs Columns) Lt(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
-	return field.CompareSubQuery(field.LtOp, cs[0], query.underlyingDB())
+	return field.CompareSubQuery(field.LtOp, cs[0], query.UnderlyingDB())
 }
 
 // Lte ...
@@ -206,5 +206,5 @@ func (cs Columns) Lte(query SubQuery[T]) field.Expr {
 	if len(cs) == 0 {
 		return field.EmptyExpr()
 	}
-	return field.CompareSubQuery(field.LteOp, cs[0], query.underlyingDB())
+	return field.CompareSubQuery(field.LteOp, cs[0], query.UnderlyingDB())
 }

@@ -101,8 +101,8 @@ var (
 
 // SubQuery sub query interface
 type SubQuery[T any] interface {
-	underlyingDB() *gorm.DB
-	underlyingDO() *DO[T]
+	UnderlyingDB() *gorm.DB
+	UnderlyingDO() *DO[T]
 
 	Condition
 }
