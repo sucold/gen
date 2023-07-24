@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm/callbacks"
 	"gorm.io/gorm/clause"
 	"gorm.io/gorm/schema"
+	"gorm.io/plugin/dbresolver"
 
 	"gorm.io/gen/field"
 	"gorm.io/gen/helper"
@@ -26,6 +27,11 @@ type ResultInfo struct {
 
 // DO (data object): implement basic query methods
 // the structure embedded with a *gorm.DB, and has a element item "alias" will be used when used as a sub query
+
+func NewDo[T any]() *DO[T] {
+	return &DO[T]{}
+}
+
 type DO[T any] struct {
 	*DOConfig
 	db        *gorm.DB
@@ -49,7 +55,7 @@ var (
 )
 
 // UseDB specify a db connection(*gorm.DB)
-func (d *DO[T]) UseDB(db *gorm.DB, opts ...DOOption[T]) {
+func (d *DO[T]) UseDB(db *gorm.DB, opts ...DOOption) {
 	db = db.Session(&gorm.Session{Context: context.Background()})
 	d.db = db
 	config := &DOConfig{}
@@ -138,12 +144,10 @@ func (d *DO[T]) buildCondition() []clause.Expression {
 }
 
 // underlyingDO return self
-func (d *DO[T]) underlyingDO() *DO[T]  { return d }
-func (d *DO[T]) UnderlyingDO2() *DO[T] { return d }
+func (d *DO[T]) underlyingDO() *DO[T] { return d }
 
 // underlyingDB return self.db
-func (d *DO[T]) underlyingDB() *gorm.DB  { return d.db }
-func (d *DO[T]) UnderlyingDB2() *gorm.DB { return d.db }
+func (d *DO[T]) underlyingDB() *gorm.DB { return d.db }
 
 func (d *DO[T]) withError(err error) *DO[T] {
 	if err == nil {
@@ -832,204 +836,43 @@ func (d *DO[T]) newResultPointer() interface{} {
 func (d *DO[T]) newResultSlicePointer() interface{} {
 	return reflect.New(reflect.SliceOf(reflect.PtrTo(d.modelType))).Interface()
 }
-
-func toColExprFullName(stmt *gorm.Statement, columns ...field.Expr) []string {
-	return buildColExpr(stmt, columns, field.WithAll)
+func (d *DO[T]) ReadDB() Dao[T] {
+	return d.Clauses(dbresolver.Read)
 }
-
-func getColumnName(columns ...field.Expr) (result []string) {
-	for _, c := range columns {
-		result = append(result, c.ColumnName().String())
-	}
-	return result
+func (d *DO[T]) WriteDB() Dao[T] {
+	return d.Clauses(dbresolver.Write)
 }
-
-func buildColExpr(stmt *gorm.Statement, cols []field.Expr, opts ...field.BuildOpt) []string {
-	results := make([]string, len(cols))
-	for i, c := range cols {
-		switch c.RawExpr().(type) {
-		case clause.Column:
-			results[i] = c.BuildColumn(stmt, opts...).String()
-		case clause.Expression:
-			sql, args := c.BuildWithArgs(stmt)
-			results[i] = stmt.Dialector.Explain(sql.String(), args...)
-		}
-	}
-	return results
+func (d *DO[T]) WhereStruct(get field.GetField, data any) Dao[T] {
+	return d.Where(Where(get, data)...)
 }
-
-func buildExpr4Select(stmt *gorm.Statement, exprs ...field.Expr) (query string, args []interface{}) {
-	if len(exprs) == 0 {
-		return "", nil
-	}
-
-	var queryItems []string
-	for _, e := range exprs {
-		sql, vars := e.BuildWithArgs(stmt)
-		queryItems = append(queryItems, sql.String())
-		args = append(args, vars...)
-	}
-	if len(args) == 0 {
-		return queryItems[0], toInterfaceSlice(queryItems[1:])
-	}
-	return strings.Join(queryItems, ","), args
+func (d *DO[T]) FindInBatch(batchSize int, fc func(tx Dao[T], batch int) error) (results []*T, err error) {
+	buf := make([]*T, 0, batchSize)
+	err = d.FindInBatches(&buf, batchSize, func(tx Dao[T], batch int) error {
+		defer func() { results = append(results, buf...) }()
+		return fc(tx, batch)
+	})
+	return results, err
 }
-
-func toExpression(exprs ...field.Expr) []clause.Expression {
-	result := make([]clause.Expression, len(exprs))
-	for i, e := range exprs {
-		result[i] = singleExpr(e)
+func (d *DO[T]) FindByPage(offset int, limit int) (result []*T, count int64, err error) {
+	result, err = d.Offset(offset).Limit(limit).Find()
+	if err != nil {
+		return
 	}
-	return result
+
+	if size := len(result); 0 < limit && 0 < size && size < limit {
+		count = int64(size + offset)
+		return
+	}
+
+	count, err = d.Offset(-1).Limit(-1).Count()
+	return
 }
-
-func toExpressionInterface(exprs ...field.Expr) []interface{} {
-	result := make([]interface{}, len(exprs))
-	for i, e := range exprs {
-		result[i] = singleExpr(e)
-	}
-	return result
-}
-
-func singleExpr(e field.Expr) clause.Expression {
-	switch v := e.RawExpr().(type) {
-	case clause.Expression:
-		return v
-	case clause.Column:
-		return clause.NamedExpr{SQL: "?", Vars: []interface{}{v}}
-	default:
-		return clause.Expr{}
-	}
-}
-
-func toInterfaceSlice(value interface{}) []interface{} {
-	switch v := value.(type) {
-	case string:
-		return []interface{}{v}
-	case []string:
-		res := make([]interface{}, len(v))
-		for i, item := range v {
-			res[i] = item
-		}
-		return res
-	case []clause.Column:
-		res := make([]interface{}, len(v))
-		for i, item := range v {
-			res[i] = item
-		}
-		return res
-	default:
-		return nil
-	}
-}
-
-// ======================== New Table ========================
-
-// Table return a new table produced by subquery,
-// the return value has to be used as root node
-//
-//	Table(u.Select(u.ID, u.Name).Where(u.Age.Gt(18))).Select()
-//
-// the above usage is equivalent to SQL statement:
-//
-//	SELECT * FROM (SELECT `id`, `name` FROM `users_info` WHERE `age` > ?)"
-func Table[T any](subQueries ...SubQuery[T]) Dao[T] {
-	if len(subQueries) == 0 {
-		return &DO[T]{}
-	}
-	tablePlaceholder := make([]string, len(subQueries))
-	tableExprs := make([]interface{}, len(subQueries))
-	for i, query := range subQueries {
-		tablePlaceholder[i] = "(?)"
-
-		do := query.underlyingDO()
-		// ignore alias, or will misuse with sub query alias
-		tableExprs[i] = do.db.Table(do.TableName())
-		if do.alias != "" {
-			tablePlaceholder[i] += " AS " + do.Quote(do.alias)
-		}
+func (d *DO[T]) ScanByPage(result interface{}, offset int, limit int) (count int64, err error) {
+	count, err = d.Count()
+	if err != nil {
+		return
 	}
 
-	return &DO[T]{
-		db: subQueries[0].underlyingDO().db.Session(&gorm.Session{NewDB: true}).Table(strings.Join(tablePlaceholder, ", "), tableExprs...),
-	}
-}
-
-// ======================== sub query method ========================
-
-// Columns columns array
-type Columns []field.Expr
-
-// Set assign value by subquery
-func (cs Columns) Set(query SubQuery[T]) field.AssignExpr {
-	return field.AssignSubQuery(cs, query.underlyingDB())
-}
-
-// In accept query or value
-func (cs Columns) In(queryOrValue Condition) field.Expr {
-	if len(cs) == 0 {
-		return field.EmptyExpr()
-	}
-
-	switch query := queryOrValue.(type) {
-	case field.Value:
-		return field.ContainsValue(cs, query)
-	case SubQuery[T]:
-		return field.ContainsSubQuery(cs, query.underlyingDB())
-	default:
-		return field.EmptyExpr()
-	}
-}
-
-// NotIn ...
-func (cs Columns) NotIn(queryOrValue Condition) field.Expr {
-	return field.Not(cs.In(queryOrValue))
-}
-
-// Eq ...
-func (cs Columns) Eq(query SubQuery[T]) field.Expr {
-	if len(cs) == 0 {
-		return field.EmptyExpr()
-	}
-	return field.CompareSubQuery(field.EqOp, cs[0], query.underlyingDB())
-}
-
-// Neq ...
-func (cs Columns) Neq(query SubQuery[T]) field.Expr {
-	if len(cs) == 0 {
-		return field.EmptyExpr()
-	}
-	return field.CompareSubQuery(field.NeqOp, cs[0], query.underlyingDB())
-}
-
-// Gt ...
-func (cs Columns) Gt(query SubQuery[T]) field.Expr {
-	if len(cs) == 0 {
-		return field.EmptyExpr()
-	}
-	return field.CompareSubQuery(field.GtOp, cs[0], query.underlyingDB())
-}
-
-// Gte ...
-func (cs Columns) Gte(query SubQuery[T]) field.Expr {
-	if len(cs) == 0 {
-		return field.EmptyExpr()
-	}
-	return field.CompareSubQuery(field.GteOp, cs[0], query.underlyingDB())
-}
-
-// Lt ...
-func (cs Columns) Lt(query SubQuery[T]) field.Expr {
-	if len(cs) == 0 {
-		return field.EmptyExpr()
-	}
-	return field.CompareSubQuery(field.LtOp, cs[0], query.underlyingDB())
-}
-
-// Lte ...
-func (cs Columns) Lte(query SubQuery[T]) field.Expr {
-	if len(cs) == 0 {
-		return field.EmptyExpr()
-	}
-	return field.CompareSubQuery(field.LteOp, cs[0], query.underlyingDB())
+	err = d.Offset(offset).Limit(limit).Scan(result)
+	return
 }

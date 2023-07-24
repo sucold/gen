@@ -1,7 +1,7 @@
 package gen
 
 // DOOption gorm option interface
-type DOOption[T any] interface {
+type DOOption interface {
 	Apply(*DOConfig) error
 	AfterInitialize(*DO[T]) error
 }
