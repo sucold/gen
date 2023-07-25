@@ -117,6 +117,11 @@ func (g *Generator) GenerateModel(tableName string, opts ...ModelOpt) *generate.
 
 // GenerateModelAs catch table info from db, return a BaseStruct
 func (g *Generator) GenerateModelAs(tableName string, modelName string, opts ...ModelOpt) *generate.QueryStructMeta {
+	conf := g.genModelConfig(tableName, modelName, opts)
+	_, structName, _ := conf.GetNames()
+	if _, ok := g.models[structName]; ok {
+		return g.models[structName]
+	}
 	meta, err := generate.GetQueryStructMeta(g.db, g.genModelConfig(tableName, modelName, opts))
 	if err != nil {
 		g.db.Logger.Error(context.Background(), "generate struct from table fail: %s", err)
@@ -324,6 +329,7 @@ func (g *Generator) generateQueryFile() (err error) {
 	}
 	select {
 	case err = <-errChan:
+		log.Println(err)
 		return err
 	case <-pool.AsyncWaitAll():
 	}
@@ -491,6 +497,7 @@ func (g *Generator) generateModelFile() error {
 		if data == nil || !data.Generated {
 			continue
 		}
+		data.Do()
 		pool.Wait()
 		go func(data *generate.QueryStructMeta) {
 			defer pool.Done()
@@ -525,6 +532,7 @@ func (g *Generator) generateModelFile() error {
 	}
 	select {
 	case err = <-errChan:
+		log.Println(err)
 		return err
 	case <-pool.AsyncWaitAll():
 		g.fillModelPkgPath(modelOutPath)
@@ -564,6 +572,7 @@ func (g *Generator) fillModelPkgPath(filePath string) {
 func (g *Generator) output(fileName string, content []byte) error {
 	result, err := imports.Process(fileName, content, nil)
 	if err != nil {
+		ioutil.WriteFile(fileName, content, 0640)
 		lines := strings.Split(string(content), "\n")
 		errLine, _ := strconv.Atoi(strings.Split(err.Error(), ":")[1])
 		startLine, endLine := errLine-5, errLine+5

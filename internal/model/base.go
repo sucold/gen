@@ -175,6 +175,7 @@ type Field struct {
 	NewTag           string
 	OverwriteTag     string
 	CustomGenType    string
+	ForeignKey       string
 	Relation         *field.Relation
 }
 

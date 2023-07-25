@@ -167,13 +167,15 @@ type I{{.ModelStructName}}Do interface {
 	Or(conds ...gen.Condition) I{{.ModelStructName}}Do
 	Select(conds ...field.Expr) I{{.ModelStructName}}Do
 	Where(conds ...gen.Condition) I{{.ModelStructName}}Do
+	{{if .Field}}
 	Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}})  {{.ReturnObject}}
-	Get({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-    MustGet({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (*{{.StructInfo.Package}}.{{.StructInfo.Type}})
+	Get({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}},skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
+    MustGet({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}},skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}})
 	MustDelete({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (err error)
+	{{end}}
     {{range .Uniques}}
 	Set{{.Name}}({{.Name}} {{.Type}}) {{$.ReturnObject}}
-	By{{.Name}}({{.Name}} {{.Type}}) (*{{$.StructInfo.Package}}.{{$.StructInfo.Type}}){{end}}
+	By{{.Name}}({{.Name}} {{.Type}},skip ...bool) (*{{$.StructInfo.Package}}.{{$.StructInfo.Type}}){{end}}
     WhereStruct(get field.GetField,data any) I{{.ModelStructName}}Do
 	Order(conds ...field.Expr) I{{.ModelStructName}}Do
 	Distinct(cols ...field.Expr) I{{.ModelStructName}}Do
@@ -188,12 +190,12 @@ type I{{.ModelStructName}}Do interface {
 	Count() (count int64, err error)
 	Scopes(funcs ...func(gen.Dao) gen.Dao) I{{.ModelStructName}}Do
 	Unscoped() I{{.ModelStructName}}Do
-	Create(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error
+	Create(values ...any) error
 	CreateInBatches(values []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int) error
 	Save(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error
-	First() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	Take() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	Last() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
+	First(skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
+	Take(skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
+	Last(skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
 	Find() ([]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
 	FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, err error)
 	FindInBatches(result *[]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int, fc func(tx gen.Dao, batch int) error) error

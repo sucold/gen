@@ -16,6 +16,13 @@ import (
 	"gorm.io/gen/helper"
 )
 
+func NewDo(db *gorm.DB, model interface{}) DO {
+	var do = DO{}
+	do.UseDB(db)
+	do.UseModel(model)
+	return do
+}
+
 // ResultInfo query/execute info
 type ResultInfo struct {
 	RowsAffected int64

@@ -3,9 +3,11 @@ package generate
 import (
 	"context"
 	"fmt"
-	"github.com/gogf/gf/v2/text/gstr"
 	"reflect"
+	"regexp"
 	"strings"
+
+	"github.com/gogf/gf/v2/text/gstr"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -41,12 +43,44 @@ type QueryStructMeta struct {
 	ModelMethods   []*parser.Method // user custom method bind to db base struct
 	Field          []*model.Field
 	Uniques        []*model.Field
+	Relas          []*model.Field
 	interfaceMode  bool
+}
+
+func StringToMap(str string) map[string]string {
+	m := make(map[string]string)
+	r := regexp.MustCompile(`gorm:"([^"]*)"`)
+	match := r.FindStringSubmatch(str)
+	if len(match) > 1 {
+		str = match[1]
+	} else {
+		return m
+	}
+
+	// Split the string into parts separated by comma
+	parts := strings.Split(str, ";")
+	for _, part := range parts {
+		// Split each part into key and value
+		keyValue := strings.Split(part, ":")
+		if len(keyValue) != 2 {
+			continue
+		}
+
+		key := strings.ToLower(keyValue[0])
+		value := keyValue[1]
+
+		// Add to map
+		m[key] = value
+	}
+
+	return m
 }
 
 func (b *QueryStructMeta) Do() {
 	b.Field = make([]*model.Field, 0)
 	b.Uniques = make([]*model.Field, 0)
+	b.Relas = make([]*model.Field, 0)
+
 	for _, f := range b.Fields {
 		f.CustomGenType = f.GenType()
 		if gstr.Contains(f.GORMTag, "primaryKey") {
@@ -57,6 +91,15 @@ func (b *QueryStructMeta) Do() {
 		}
 		if gstr.Contains(f.NewTag, "unique_do") {
 			b.Uniques = append(b.Uniques, f)
+		}
+		if f.IsRelation() {
+			var m = StringToMap(f.OverwriteTag)
+			if key, ok := m["foreignkey"]; ok {
+				f.ForeignKey = key
+			}
+			if f.Relation.Relationship() == field.HasOne || f.Relation.Relationship() == field.BelongsTo {
+				b.Relas = append(b.Relas, f)
+			}
 		}
 		//if len(f.Column.Indexes) > 0 {
 		//	for _, idx := range f.Column.Indexes {

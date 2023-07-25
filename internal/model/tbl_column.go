@@ -3,9 +3,10 @@ package model
 import (
 	"bytes"
 	"fmt"
-	"gorm.io/gorm/schema"
 	"reflect"
 	"strings"
+
+	"gorm.io/gorm/schema"
 
 	"gorm.io/gorm"
 )
@@ -106,7 +107,7 @@ func (c *Column) buildGormTag() string {
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("column:%s", c.Name()))
 	if c.Field != nil && c.Field.FieldType.String() == "decimal.Decimal" {
-		buf.WriteString(fmt.Sprintf(";type:numeric"))
+		buf.WriteString(";type:numeric")
 	} else {
 		buf.WriteString(fmt.Sprintf(";type:%s", c.columnType()))
 	}
@@ -117,7 +118,7 @@ func (c *Column) buildGormTag() string {
 		if at, ok := c.AutoIncrement(); ok {
 			buf.WriteString(fmt.Sprintf(";autoIncrement:%t", at))
 		} else {
-			buf.WriteString(fmt.Sprintf(";autoIncrement:false"))
+			buf.WriteString(";autoIncrement:false")
 		}
 	} else if n, ok := c.Nullable(); ok && !n {
 		buf.WriteString(";not null")

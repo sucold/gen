@@ -72,6 +72,7 @@ func ({{.S}} {{.QueryStructName}}Do) Select(conds ...field.Expr) {{.ReturnObject
 func ({{.S}} {{.QueryStructName}}Do) Where(conds ...gen.Condition) {{.ReturnObject}} {
 	return {{.S}}.withDO({{.S}}.DO.Where(conds...))
 }
+{{if .Field}}
 func ({{.S}} {{.QueryStructName}}Do) Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}})  {{.ReturnObject}} {
 	var keys []gen.Condition
 	{{range .Field}}
@@ -79,12 +80,12 @@ func ({{.S}} {{.QueryStructName}}Do) Key({{range $index, $element := .Field}}{{i
 	{{end}}
 	return {{.S}}.Where(keys...)
 }
-func ({{.S}} {{.QueryStructName}}Do) Get({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
-	return {{.S}}.Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}}{{end}}).First()
+func ({{.S}} {{.QueryStructName}}Do) Get({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}},skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+	return {{.S}}.Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}}{{end}}).First(skip...)
 }
 
-func ({{.S}} {{.QueryStructName}}Do) MustGet({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}) {
-	data,_ := {{.S}}.Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}}{{end}}).First()
+func ({{.S}} {{.QueryStructName}}Do) MustGet({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}},skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}) {
+	data,_ := {{.S}}.Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}}{{end}}).First(skip...)
 	return data
 }
 
@@ -92,15 +93,15 @@ func ({{.S}} {{.QueryStructName}}Do) MustDelete({{range $index, $element := .Fie
 	_,err = {{.S}}.Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}}{{end}}).Delete()
 	return
 }
-
+{{end}}
 
 {{range .Uniques}}
 var uni_{{$.QueryStructName}}_{{.ColumnName}} = field.New{{.CustomGenType}}("{{$.TableName}}", "{{.ColumnName}}")
 func ({{$.S}} {{$.QueryStructName}}Do) Set{{.Name}}({{.Name}} {{.Type}}) {{$.ReturnObject}}  {
 	return {{$.S}}.Where(uni_{{$.QueryStructName}}_{{.ColumnName}}.Eq({{.Name}}))
 }
-func ({{$.S}} {{$.QueryStructName}}Do) By{{.Name}}({{.Name}} {{.Type}}) (*{{$.StructInfo.Package}}.{{$.StructInfo.Type}})  {
-	data,_:= {{$.S}}.Where(uni_{{$.QueryStructName}}_{{.ColumnName}}.Eq({{.Name}})).First()
+func ({{$.S}} {{$.QueryStructName}}Do) By{{.Name}}({{.Name}} {{.Type}},skip ...bool) (*{{$.StructInfo.Package}}.{{$.StructInfo.Type}})  {
+	data,_:= {{$.S}}.Where(uni_{{$.QueryStructName}}_{{.ColumnName}}.Eq({{.Name}})).First(skip...)
 	return data
 }
 {{end}}
@@ -161,11 +162,15 @@ func ({{.S}} {{.QueryStructName}}Do) Unscoped() {{.ReturnObject}} {
 	return {{.S}}.withDO({{.S}}.DO.Unscoped())
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Create(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error {
+func ({{.S}} {{.QueryStructName}}Do) Create(values ...any) error {
 	if len(values) == 0 {
 		return nil
 	}
-	return {{.S}}.DO.Create(values)
+	var data = make([]*{{.StructInfo.Package}}.{{.StructInfo.Type}},0)
+	if err:=gconv.Scan(values,data);err != nil {
+		return err
+	}
+	return {{.S}}.DO.Create(data)
 }
 
 func ({{.S}} {{.QueryStructName}}Do) CreateInBatches(values []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int) error {
@@ -181,27 +186,51 @@ func ({{.S}} {{.QueryStructName}}Do) Save(values ...*{{.StructInfo.Package}}.{{.
 	return {{.S}}.DO.Save(values)
 }
 
-func ({{.S}} {{.QueryStructName}}Do) First() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) First(skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.First(); err != nil {
 		return nil, err
 	} else {
-		return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		if len(skip) > 0 && skip[0] {
+			return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		} else {
+			var ret = result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}})
+			if err := {{.S}}.Sync(ret);err != nil {
+				return nil,err
+			}
+			return ret, nil
+		}
 	}
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Take() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) Take(skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.Take(); err != nil {
 		return nil, err
 	} else {
-		return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		if len(skip) > 0 && skip[0] {
+			return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		} else {
+			var ret = result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}})
+			if err := {{.S}}.Sync(ret);err != nil {
+				return nil,err
+			}
+			return ret, nil
+		}
 	}
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Last() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) Last(skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.Last(); err != nil {
 		return nil, err
 	} else {
-		return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		if len(skip) > 0 && skip[0] {
+			return result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}}), nil
+		} else {
+			var ret = result.(*{{.StructInfo.Package}}.{{.StructInfo.Type}})
+			if err := {{.S}}.Sync(ret);err != nil {
+				return nil,err
+			}
+			return ret, nil
+		}
 	}
 }
 
@@ -297,6 +326,27 @@ func ({{.S}} {{.QueryStructName}}Do) Delete(models ...*{{.StructInfo.Package}}.{
 func ({{.S}} *{{.QueryStructName}}Do) withDO(do gen.Dao) (*{{.QueryStructName}}Do) {
 	{{.S}}.DO = *do.(*gen.DO)
 	return {{.S}}
+}
+
+var _{{.StructInfo.Type}}_relation = []field.RelationField{
+	{{range .Relas -}}{{if .IsRelation -}}{{$.ModelStructName}}.{{.Name}},{{end}}{{end}}
+}
+func ({{.S}} *{{.QueryStructName}}Do) Sync(data *{{.StructInfo.Package}}.{{.StructInfo.Type}},relations ...field.RelationField) (err error) {
+	for _, relation := range append(_{{.StructInfo.Type}}_relation, relations...) {
+		switch relation.Name() {
+		{{range .Relas -}}{{if .IsRelation -}}
+		case "{{.Name}}":
+			if data.{{.Name}} != nil {
+				break
+			}
+			if data.{{.Name}},err = {{.Name}}.Get(data.{{.ForeignKey}});err != nil {
+				return
+			}
+			break
+		{{end}}{{end}}
+		}
+	}
+	return 
 }
 
 `
