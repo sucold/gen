@@ -9,6 +9,11 @@ func (field Bool) Not() Bool {
 }
 
 // Is ...
+func (field Bool) Eq(value bool) Expr {
+	return field.is(value)
+}
+
+// Is ...
 func (field Bool) Is(value bool) Expr {
 	return field.is(value)
 }

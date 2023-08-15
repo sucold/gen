@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -486,7 +485,8 @@ func (g *Generator) generateModelFile() error {
 	if err != nil {
 		return err
 	}
-
+	log.Println("modelOutPath", modelOutPath)
+	log.Println("OutPath", g.OutPath)
 	if err = os.MkdirAll(modelOutPath, os.ModePerm); err != nil {
 		return fmt.Errorf("create model pkg path(%s) fail: %s", modelOutPath, err)
 	}
@@ -499,6 +499,8 @@ func (g *Generator) generateModelFile() error {
 		}
 		data.Do()
 		pool.Wait()
+		data.Package = g.queryPkgName
+		log.Println(data.ModelStructName)
 		go func(data *generate.QueryStructMeta) {
 			defer pool.Done()
 
@@ -517,7 +519,7 @@ func (g *Generator) generateModelFile() error {
 				}
 			}
 
-			modelFile := modelOutPath + data.FileName + ".gen.go"
+			modelFile := modelOutPath + data.FileName + ".model.gen.go"
 			var bt = buf.Bytes()
 			bt = bytes.ReplaceAll(bt, []byte(`"github.com/gogf/gf/v2`), []byte(`"github.com/gogf/gf`))
 			bt = bytes.ReplaceAll(bt, []byte(`"github.com/gogf/gf`), []byte(`"github.com/gogf/gf/v2`))
@@ -541,15 +543,16 @@ func (g *Generator) generateModelFile() error {
 }
 
 func (g *Generator) getModelOutputPath() (outPath string, err error) {
-	if strings.Contains(g.ModelPkgPath, string(os.PathSeparator)) {
-		outPath, err = filepath.Abs(g.ModelPkgPath)
-		if err != nil {
-			return "", fmt.Errorf("cannot parse model pkg path: %w", err)
-		}
-	} else {
-		outPath = filepath.Join(filepath.Dir(g.OutPath), g.ModelPkgPath)
-	}
-	return outPath + string(os.PathSeparator), nil
+	//g.ModelPkgPath = "dap"
+	//if strings.Contains(g.ModelPkgPath, string(os.PathSeparator)) {
+	//	outPath, err = filepath.Abs(g.ModelPkgPath)
+	//	if err != nil {
+	//		return "", fmt.Errorf("cannot parse model pkg path: %w", err)
+	//	}
+	//} else {
+	//	outPath = filepath.Join(filepath.Dir(g.OutPath), g.ModelPkgPath)
+	//}
+	return g.OutPath + string(os.PathSeparator), nil
 }
 
 func (g *Generator) fillModelPkgPath(filePath string) {

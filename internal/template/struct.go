@@ -35,7 +35,7 @@ const (
 		_{{.QueryStructName}} := {{.QueryStructName}}{}
 	
 		_{{.QueryStructName}}.{{.QueryStructName}}Do.UseDB(db,opts...)
-		_{{.QueryStructName}}.{{.QueryStructName}}Do.UseModel(&{{.StructInfo.Package}}.{{.StructInfo.Type}}{})
+		_{{.QueryStructName}}.{{.QueryStructName}}Do.UseModel(&{{.StructInfo.Type}}{})
 	
 		tableName := _{{.QueryStructName}}.{{.QueryStructName}}Do.TableName()
 		_{{$.QueryStructName}}.ALL = field.NewAsterisk(tableName)
@@ -169,13 +169,13 @@ type I{{.ModelStructName}}Do interface {
 	Where(conds ...gen.Condition) I{{.ModelStructName}}Do
 	{{if .Field}}
 	Key({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}})  {{.ReturnObject}}
-	Get({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}},skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-    MustGet({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}},skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}})
+	Get({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (*{{.StructInfo.Type}}, error)
+    MustGet({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (*{{.StructInfo.Type}})
 	MustDelete({{range $index, $element := .Field}}{{if $index}}, {{end}}{{.ColumnName}} {{.Type}}{{end}}) (err error)
 	{{end}}
     {{range .Uniques}}
 	Set{{.Name}}({{.Name}} {{.Type}}) {{$.ReturnObject}}
-	By{{.Name}}({{.Name}} {{.Type}},skip ...bool) (*{{$.StructInfo.Package}}.{{$.StructInfo.Type}}){{end}}
+	By{{.Name}}({{.Name}} {{.Type}}) (*{{$.StructInfo.Package}}.{{$.StructInfo.Type}}){{end}}
     WhereStruct(get field.GetField,data any) I{{.ModelStructName}}Do
 	Order(conds ...field.Expr) I{{.ModelStructName}}Do
 	Distinct(cols ...field.Expr) I{{.ModelStructName}}Do
@@ -190,17 +190,18 @@ type I{{.ModelStructName}}Do interface {
 	Count() (count int64, err error)
 	Scopes(funcs ...func(gen.Dao) gen.Dao) I{{.ModelStructName}}Do
 	Unscoped() I{{.ModelStructName}}Do
-	Create(values ...any) error
-	CreateInBatches(values []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int) error
-	Save(values ...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) error
-	First(skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	Take(skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	Last(skip ...bool) (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	Find() ([]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, err error)
-	FindInBatches(result *[]*{{.StructInfo.Package}}.{{.StructInfo.Type}}, batchSize int, fc func(tx gen.Dao, batch int) error) error
+	Create(values ...*{{.StructInfo.Type}}) error
+	CreateAny(values ...any) error
+	CreateInBatches(values []*{{.StructInfo.Type}}, batchSize int) error
+	Save(values ...*{{.StructInfo.Type}}) error
+	First(skip ...bool) (*{{.StructInfo.Type}}, error)
+	Take(skip ...bool) (*{{.StructInfo.Type}}, error)
+	Last(skip ...bool) (*{{.StructInfo.Type}}, error)
+	Find() ([]*{{.StructInfo.Type}}, error)
+	FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*{{.StructInfo.Type}}, err error)
+	FindInBatches(result *[]*{{.StructInfo.Type}}, batchSize int, fc func(tx gen.Dao, batch int) error) error
 	Pluck(column field.Expr, dest interface{}) error
-	Delete(...*{{.StructInfo.Package}}.{{.StructInfo.Type}}) (info gen.ResultInfo, err error)
+	Delete(...*{{.StructInfo.Type}}) (info gen.ResultInfo, err error)
 	Update(column field.Expr, value interface{}) (info gen.ResultInfo, err error)
 	UpdateSimple(columns ...field.AssignExpr) (info gen.ResultInfo, err error)
 	Updates(value interface{}) (info gen.ResultInfo, err error)
@@ -212,9 +213,9 @@ type I{{.ModelStructName}}Do interface {
 	Assign(attrs ...field.AssignExpr) I{{.ModelStructName}}Do
 	Joins(fields ...field.RelationField) I{{.ModelStructName}}Do
 	Preload(fields ...field.RelationField) I{{.ModelStructName}}Do
-	FirstOrInit() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	FirstOrCreate() (*{{.StructInfo.Package}}.{{.StructInfo.Type}}, error)
-	FindByPage(offset int, limit int) (result []*{{.StructInfo.Package}}.{{.StructInfo.Type}}, count int64, err error)
+	FirstOrInit() (*{{.StructInfo.Type}}, error)
+	FirstOrCreate() (*{{.StructInfo.Type}}, error)
+	FindByPage(offset int, limit int) (result []*{{.StructInfo.Type}}, count int64, err error)
 	ScanByPage(result interface{}, offset int, limit int) (count int64, err error)
 	Scan(result interface{}) (err error)
 	Returning(value interface{}, columns ...string) I{{.ModelStructName}}Do

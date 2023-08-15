@@ -43,6 +43,11 @@ type DO struct {
 	backfillData interface{}
 }
 
+// Create ...
+func (d *DO) Create(value interface{}) error {
+	return d.db.Create(value).Error
+}
+
 func (d DO) getInstance(db *gorm.DB) *DO {
 	d.db = db
 	return &d
@@ -589,13 +594,6 @@ func getFromClause(db *gorm.DB) *clause.From {
 		return &clause.From{}
 	}
 	return &from
-}
-
-// ======================== finisher api ========================
-
-// Create ...
-func (d *DO) Create(value interface{}) error {
-	return d.db.Create(value).Error
 }
 
 // CreateInBatches ...

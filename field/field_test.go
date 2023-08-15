@@ -16,6 +16,7 @@ var db, _ = gorm.Open(tests.DummyDialector{}, nil)
 
 func GetStatement() *gorm.Statement {
 	user, _ := schema.Parse(&User{}, &sync.Map{}, db.NamingStrategy)
+	//user.Table
 	return &gorm.Statement{DB: db, Table: user.Table, Schema: user, Clauses: map[string]clause.Clause{}}
 }
 
