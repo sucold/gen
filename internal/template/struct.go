@@ -175,7 +175,7 @@ type I{{.ModelStructName}}Do interface {
 	{{end}}
     {{range .Uniques}}
 	Set{{.Name}}({{.Name}} {{.Type}}) {{$.ReturnObject}}
-	By{{.Name}}({{.Name}} {{.Type}}) (*{{$.StructInfo.Package}}.{{$.StructInfo.Type}}){{end}}
+	By{{.Name}}({{.Name}} {{.Type}}) (*{{$.StructInfo.Type}}){{end}}
     WhereStruct(get field.GetField,data any) I{{.ModelStructName}}Do
 	Order(conds ...field.Expr) I{{.ModelStructName}}Do
 	Distinct(cols ...field.Expr) I{{.ModelStructName}}Do
@@ -194,9 +194,9 @@ type I{{.ModelStructName}}Do interface {
 	CreateAny(values ...any) error
 	CreateInBatches(values []*{{.StructInfo.Type}}, batchSize int) error
 	Save(values ...*{{.StructInfo.Type}}) error
-	First(skip ...bool) (*{{.StructInfo.Type}}, error)
-	Take(skip ...bool) (*{{.StructInfo.Type}}, error)
-	Last(skip ...bool) (*{{.StructInfo.Type}}, error)
+	First() (*{{.StructInfo.Type}}, error)
+	Take() (*{{.StructInfo.Type}}, error)
+	Last() (*{{.StructInfo.Type}}, error)
 	Find() ([]*{{.StructInfo.Type}}, error)
 	FindInBatch(batchSize int, fc func(tx gen.Dao, batch int) error) (results []*{{.StructInfo.Type}}, err error)
 	FindInBatches(result *[]*{{.StructInfo.Type}}, batchSize int, fc func(tx gen.Dao, batch int) error) error
@@ -257,7 +257,7 @@ func (a {{$.QueryStructName}}{{$relationship}}{{$relation.Name}}) WithContext(ct
 	return &a
 }
 
-func (a {{$.QueryStructName}}{{$relationship}}{{$relation.Name}}) Model(m *{{$.StructInfo.Package}}.{{$.StructInfo.Type}}) *{{$.QueryStructName}}{{$relationship}}{{$relation.Name}}Tx {
+func (a {{$.QueryStructName}}{{$relationship}}{{$relation.Name}}) Model(m *{{$.StructInfo.Type}}) *{{$.QueryStructName}}{{$relationship}}{{$relation.Name}}Tx {
 	return &{{$.QueryStructName}}{{$relationship}}{{$relation.Name}}Tx{a.db.Model(m).Association(a.Name())}
 }
 

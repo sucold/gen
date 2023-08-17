@@ -100,7 +100,7 @@ var uni_{{$.QueryStructName}}_{{.ColumnName}} = field.New{{.CustomGenType}}("{{$
 func ({{$.S}} {{$.QueryStructName}}Do) Set{{.Name}}({{.Name}} {{.Type}}) {{$.ReturnObject}}  {
 	return {{$.S}}.Where(uni_{{$.QueryStructName}}_{{.ColumnName}}.Eq({{.Name}}))
 }
-func ({{$.S}} {{$.QueryStructName}}Do) By{{.Name}}({{.Name}} {{.Type}}) (*{{$.StructInfo.Package}}.{{$.StructInfo.Type}})  {
+func ({{$.S}} {{$.QueryStructName}}Do) By{{.Name}}({{.Name}} {{.Type}}) (*{{$.StructInfo.Type}})  {
 	data,_:= {{$.S}}.Where(uni_{{$.QueryStructName}}_{{.ColumnName}}.Eq({{.Name}})).First()
 	return data
 }
@@ -193,7 +193,7 @@ func ({{.S}} {{.QueryStructName}}Do) Save(values ...*{{.StructInfo.Type}}) error
 	return {{.S}}.DO.Save(values)
 }
 
-func ({{.S}} {{.QueryStructName}}Do) First(skip ...bool) (*{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) First() (*{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.First(); err != nil {
 		return nil, err
 	} else {
@@ -201,7 +201,7 @@ func ({{.S}} {{.QueryStructName}}Do) First(skip ...bool) (*{{.StructInfo.Type}},
 	}
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Take(skip ...bool) (*{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) Take() (*{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.Take(); err != nil {
 		return nil, err
 	} else {
@@ -209,7 +209,7 @@ func ({{.S}} {{.QueryStructName}}Do) Take(skip ...bool) (*{{.StructInfo.Type}}, 
 	}
 }
 
-func ({{.S}} {{.QueryStructName}}Do) Last(skip ...bool) (*{{.StructInfo.Type}}, error) {
+func ({{.S}} {{.QueryStructName}}Do) Last() (*{{.StructInfo.Type}}, error) {
 	if result, err := {{.S}}.DO.Last(); err != nil {
 		return nil, err
 	} else {

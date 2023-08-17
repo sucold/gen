@@ -238,7 +238,7 @@ func (m *Field) EscapeKeyword() *Field {
 // EscapeKeywordFor escape for specified keyword
 func (m *Field) EscapeKeywordFor(keywords KeyWord) *Field {
 	if keywords.FullMatch(m.Name) {
-		m.Name += "_"
+		//m.Name += "_"
 	}
 	return m
 }

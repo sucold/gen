@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/gogf/gf/v2/os/gfile"
 	"io"
 	"io/ioutil"
 	"log"
@@ -283,7 +284,10 @@ func (g *Generator) Execute() {
 		g.db.Logger.Error(context.Background(), "generate query code fail: %s", err)
 		panic("generate query code fail")
 	}
-
+	if err := g.generateFiledFile(); err != nil {
+		g.db.Logger.Error(context.Background(), "generate field code fail: %s", err)
+		panic("generate field code fail")
+	}
 	g.info("Generate code done.")
 }
 
@@ -293,6 +297,52 @@ func (g *Generator) info(logInfos ...string) {
 		g.db.Logger.Info(context.Background(), l)
 		log.Println(l)
 	}
+}
+
+func (g *Generator) generateSingleFieldFile(info *genInfo) (err error) {
+	var (
+		buf  bytes.Buffer
+		data = map[string]any{
+			"Dao":        gfile.Basename(g.OutPath),
+			"Package":    info.FileName,
+			"Fields":     info.Fields,
+			"StructName": info.ModelStructName,
+		}
+	)
+	if err = render(tmpl.Field, &buf, data); err != nil {
+		return err
+	}
+	if err = gfile.Mkdir(fmt.Sprintf("%s/%s", g.OutPath, info.FileName)); err != nil {
+		return err
+	}
+	defer g.info(fmt.Sprintf("generate field file: %s/%s/%s.gen.go", g.OutPath, info.FileName, info.FileName))
+	return g.output(fmt.Sprintf("%s/%s/%s.gen.go", g.OutPath, info.FileName, info.FileName), buf.Bytes())
+}
+func (g *Generator) generateFiledFileSub() (err error) {
+	log.Println("generateFiledFile", g.OutPath)
+	for _, info := range g.Data {
+		if err = g.generateSingleFieldFile(info); err != nil {
+			log.Println(err)
+		}
+	}
+	return err
+}
+func (g *Generator) generateFiledFile() (err error) {
+	log.Println("generateFiledFile", g.OutPath)
+	pool := pools.NewPool(concurrent)
+	for _, info := range g.Data {
+		pool.Wait()
+		go func(info *genInfo) {
+			defer pool.Done()
+			if err = g.generateSingleFieldFile(info); err != nil {
+				log.Println(err)
+			}
+		}(info)
+	}
+	select {
+	case <-pool.AsyncWaitAll():
+	}
+	return err
 }
 
 // generateQueryFile generate query code and save to file
@@ -305,7 +355,6 @@ func (g *Generator) generateQueryFile() (err error) {
 		return fmt.Errorf("make dir outpath(%s) fail: %s", g.OutPath, err)
 	}
 
-	errChan := make(chan error)
 	pool := pools.NewPool(concurrent)
 	// generate query code for all struct
 
@@ -315,9 +364,8 @@ func (g *Generator) generateQueryFile() (err error) {
 			defer pool.Done()
 			err := g.generateSingleQueryFile(info)
 			if err != nil {
-				errChan <- err
+				log.Println(err)
 			}
-
 			if g.WithUnitTest {
 				err = g.generateQueryUnitTestFile(info)
 				if err != nil { // do not panic
@@ -327,9 +375,6 @@ func (g *Generator) generateQueryFile() (err error) {
 		}(info)
 	}
 	select {
-	case err = <-errChan:
-		log.Println(err)
-		return err
 	case <-pool.AsyncWaitAll():
 	}
 
@@ -480,18 +525,13 @@ func (g *Generator) generateModelFile() error {
 	if len(g.models) == 0 {
 		return nil
 	}
-
 	modelOutPath, err := g.getModelOutputPath()
 	if err != nil {
 		return err
 	}
-	log.Println("modelOutPath", modelOutPath)
-	log.Println("OutPath", g.OutPath)
 	if err = os.MkdirAll(modelOutPath, os.ModePerm); err != nil {
 		return fmt.Errorf("create model pkg path(%s) fail: %s", modelOutPath, err)
 	}
-
-	errChan := make(chan error)
 	pool := pools.NewPool(concurrent)
 	for _, data := range g.models {
 		if data == nil || !data.Generated {
@@ -500,42 +540,34 @@ func (g *Generator) generateModelFile() error {
 		data.Do()
 		pool.Wait()
 		data.Package = g.queryPkgName
-		log.Println(data.ModelStructName)
 		go func(data *generate.QueryStructMeta) {
 			defer pool.Done()
-
 			var buf bytes.Buffer
-			err := render(tmpl.Model, &buf, data)
-			if err != nil {
-				errChan <- err
+			var err error
+			if err = render(tmpl.Model, &buf, data); err != nil {
+				log.Println(err)
 				return
 			}
-
 			for _, method := range data.ModelMethods {
 				err = render(tmpl.ModelMethod, &buf, method)
 				if err != nil {
-					errChan <- err
+					log.Println(err)
 					return
 				}
 			}
-
 			modelFile := modelOutPath + data.FileName + ".model.gen.go"
 			var bt = buf.Bytes()
 			bt = bytes.ReplaceAll(bt, []byte(`"github.com/gogf/gf/v2`), []byte(`"github.com/gogf/gf`))
 			bt = bytes.ReplaceAll(bt, []byte(`"github.com/gogf/gf`), []byte(`"github.com/gogf/gf/v2`))
-			err = g.output(modelFile, bt)
-			if err != nil {
-				errChan <- err
+
+			if err = g.output(modelFile, bt); err != nil {
+				log.Println(err)
 				return
 			}
-
 			g.info(fmt.Sprintf("generate model file(table <%s> -> {%s.%s}): %s", data.TableName, data.StructInfo.Package, data.StructInfo.Type, modelFile))
 		}(data)
 	}
 	select {
-	case err = <-errChan:
-		log.Println(err)
-		return err
 	case <-pool.AsyncWaitAll():
 		g.fillModelPkgPath(modelOutPath)
 	}

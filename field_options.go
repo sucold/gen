@@ -203,6 +203,10 @@ var (
 			config.JSONTag = ns.ColumnName("", fieldName)
 		}
 		return func(*model.Field) *model.Field {
+			rela := field.NewRelationWithType(
+				relationship, fieldName, table.StructInfo.Type,
+				table.Relations()...)
+			rela.Key = config.Key
 			data := &model.Field{
 				Name:         fieldName,
 				Type:         config.RelateFieldPrefix(relationship) + table.StructInfo.Type,
@@ -210,12 +214,8 @@ var (
 				GORMTag:      config.GORMTag,
 				NewTag:       config.NewTag,
 				OverwriteTag: config.OverwriteTag,
-
-				Relation: field.NewRelationWithType(
-					relationship, fieldName, table.StructInfo.Package+"."+table.StructInfo.Type,
-					table.Relations()...),
+				Relation:     rela,
 			}
-
 			return data
 		}
 	}

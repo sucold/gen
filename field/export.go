@@ -297,6 +297,7 @@ var Associations RelationField = NewRelation(clause.Associations, "")
 
 // NewRelation return a new Relation for association
 func NewRelation(fieldName string, fieldType string, relations ...Relation) *Relation {
+
 	return &Relation{
 		fieldName:      fieldName,
 		fieldPath:      fieldName,
@@ -307,6 +308,7 @@ func NewRelation(fieldName string, fieldType string, relations ...Relation) *Rel
 
 // NewRelationWithType return a Relation with specified field type
 func NewRelationWithType(relationship RelationshipType, fieldName string, fieldType string, relations ...Relation) *Relation {
+
 	return &Relation{
 		relationship:   relationship,
 		fieldName:      fieldName,

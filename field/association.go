@@ -67,11 +67,11 @@ type RelationField interface {
 // Relation relation meta info
 type Relation struct {
 	relationship RelationshipType
-
-	fieldName  string
-	fieldType  string
-	fieldPath  string
-	fieldModel interface{} // store relaiton model
+	Key          string
+	fieldName    string
+	fieldType    string
+	fieldPath    string
+	fieldModel   interface{} // store relaiton model
 
 	childRelations []Relation
 
@@ -217,11 +217,11 @@ type RelateConfig struct {
 	RelatePointer      bool
 	RelateSlice        bool
 	RelateSlicePointer bool
-
-	JSONTag      string
-	GORMTag      string
-	NewTag       string
-	OverwriteTag string
+	Key                string
+	JSONTag            string
+	GORMTag            string
+	NewTag             string
+	OverwriteTag       string
 }
 
 // RelateFieldPrefix return generated relation field's type

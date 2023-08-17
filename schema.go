@@ -55,6 +55,13 @@ func (r *Schema) GetModelOpt(table string) (opt []ModelOpt) {
 		if schema2 = r.GetSchema(item.FieldSchema.Table); schema2 != nil {
 			opt = append(opt, FieldRelate(field.RelationshipType(item.Type), item.Name, r.GenerateModel(schema2.Table), &field.RelateConfig{
 				OverwriteTag: string(item.Field.Tag),
+				Key: func() string {
+					if rr, ok := item.Field.TagSettings["FOREIGNKEY"]; ok {
+						return rr
+					} else {
+						return ""
+					}
+				}(),
 			}))
 		}
 	}

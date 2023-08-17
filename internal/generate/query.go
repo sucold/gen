@@ -308,6 +308,7 @@ func pullRelationShip(cache map[string]bool, relationships []*schema.Relationshi
 	for i, relationship := range relationships {
 		var childRelations []field.Relation
 		varType := strings.TrimLeft(relationship.Field.FieldType.String(), "[]*")
+
 		if !cache[varType] {
 			cache[varType] = true
 			childRelations = pullRelationShip(cache, append(append(append(append(

@@ -70,3 +70,13 @@ func getAllFields(t reflect.Type) []reflect.StructField {
 	}
 	return fields
 }
+
+type Kv struct {
+	Key string
+	Val string
+}
+type Edges struct {
+	Name   string
+	Unique bool
+	Fields []*Kv
+}
