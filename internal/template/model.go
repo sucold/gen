@@ -47,7 +47,7 @@ func(r *{{$.ModelStructName}}) Query{{.Relation.Name}}() I{{.Relation.Name}}Do {
 	return Query{{.Relation.Name}}.Key(r.{{.Relation.Key}})
 }
 
-func(r *{{$.ModelStructName}}) Get{{.Relation.Name}}(update ...bool) (*{{.Relation.Type}}, error) {
+func(r *{{$.ModelStructName}}) Get{{.Relation.Name}}(update ...bool) ({{if eq .Relation.Relationship "HasMany" "ManyToMany"}}[]{{end}}*{{.Relation.Type}}, error) {
 	if len(update) == 0 && r.{{.Relation.Name}} != nil {
 		return r.{{.Relation.Name}}, nil
 	} 

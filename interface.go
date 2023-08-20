@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"context"
 	"database/sql"
 
 	"gorm.io/gorm"
@@ -39,10 +40,21 @@ type Dao interface {
 	SubQuery
 	schema.Tabler
 	As(alias string) Dao
-
+	ReplaceDB(db *gorm.DB)
+	UnderlyingDB() *gorm.DB
+	UpdateFrom(q SubQuery) Dao
+	ReplaceConnPool(pool gorm.ConnPool)
+	UseDB(db *gorm.DB, opts ...DOOption)
+	Session(config *gorm.Session) Dao
+	Returning(value interface{}, columns ...string) Dao
+	UseModel(model interface{})
+	UseTable(tableName string)
+	WithResult(fc func(tx Dao)) ResultInfo
+	Columns(cols ...field.Expr) Columns
+	WithContext(ctx context.Context) Dao
 	Not(conds ...Condition) Dao
 	Or(conds ...Condition) Dao
-
+	Debug() Dao
 	Select(columns ...field.Expr) Dao
 	Where(conds ...Condition) Dao
 	Order(columns ...field.Expr) Dao
@@ -73,7 +85,7 @@ type Dao interface {
 	FindInBatches(dest interface{}, batchSize int, fc func(tx Dao, batch int) error) error
 	FirstOrInit() (result interface{}, err error)
 	FirstOrCreate() (result interface{}, err error)
-	Update(column field.Expr, value interface{}) (info ResultInfo, err error)
+	Update(columns ...field.AssignExpr) (info ResultInfo, err error)
 	UpdateSimple(columns ...field.AssignExpr) (info ResultInfo, err error)
 	Updates(values interface{}) (info ResultInfo, err error)
 	UpdateColumn(column field.Expr, value interface{}) (info ResultInfo, err error)

@@ -3,6 +3,7 @@ package generate
 import (
 	"context"
 	"fmt"
+	"log"
 	"reflect"
 	"regexp"
 	"strings"
@@ -97,6 +98,7 @@ func (b *QueryStructMeta) Do() {
 			if key, ok := m["foreignkey"]; ok {
 				f.ForeignKey = key
 			}
+			log.Println("relation", f.Name, f.ForeignKey, f.ColumnName, f.ColumnName, f.Relation.Key, f.Relation.Name(), f.Relation.Type())
 			if f.Relation.Relationship() == field.HasOne || f.Relation.Relationship() == field.BelongsTo {
 				b.Relas = append(b.Relas, f)
 			}

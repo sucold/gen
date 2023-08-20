@@ -675,20 +675,12 @@ func (d *DO) FirstOrCreate() (result interface{}, err error) {
 	return d.singleQuery(d.db.FirstOrCreate)
 }
 
-// Update ...
-func (d *DO) Update(column field.Expr, value interface{}) (info ResultInfo, err error) {
-	tx := d.db.Model(d.newResultPointer())
-	columnStr := column.BuildColumn(d.db.Statement, field.WithoutQuote).String()
-
-	var result *gorm.DB
-	switch value := value.(type) {
-	case field.AssignExpr:
-		result = tx.Update(columnStr, value.AssignExpr())
-	case SubQuery:
-		result = tx.Update(columnStr, value.underlyingDB())
-	default:
-		result = tx.Update(columnStr, value)
+func (d *DO) Update(columns ...field.AssignExpr) (info ResultInfo, err error) {
+	if len(columns) == 0 {
+		return
 	}
+
+	result := d.db.Model(d.newResultPointer()).Clauses(d.assignSet(columns)).Omit("*").Updates(map[string]interface{}{})
 	return ResultInfo{RowsAffected: result.RowsAffected, Error: result.Error}, result.Error
 }
 
