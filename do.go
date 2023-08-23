@@ -247,6 +247,12 @@ func (d *DO) Where(conds ...Condition) Dao {
 	}
 	return d.getInstance(d.db.Clauses(clause.Where{Exprs: exprs}))
 }
+func (d *DO) WhereRaw(data any, args ...any) Dao {
+	if data == nil {
+		return d
+	}
+	return d.getInstance(d.db.Where(data, args...))
+}
 
 // Order ...
 func (d *DO) Order(columns ...field.Expr) Dao {

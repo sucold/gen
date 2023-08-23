@@ -75,6 +75,7 @@ func (e expr) expression() clause.Expression {
 }
 
 func (e expr) ColumnName() sql { return sql(e.col.Name) }
+func (e expr) Column() string  { return e.col.Name }
 
 // BuildOpt build option
 type BuildOpt uint
