@@ -23,6 +23,7 @@ type Expr interface {
 
 	As(alias string) Expr
 	ColumnName() sql
+	Column() string
 	BuildColumn(*gorm.Statement, ...BuildOpt) sql
 	BuildWithArgs(*gorm.Statement) (query sql, args []interface{})
 	RawExpr() expression
@@ -54,8 +55,7 @@ type sql string
 func (e sql) String() string { return string(e) }
 
 type expr struct {
-	col clause.Column
-
+	col       clause.Column
 	e         clause.Expression
 	buildOpts []BuildOpt
 }

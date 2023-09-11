@@ -1,8 +1,9 @@
 package gen
 
 import (
-	"gorm.io/gen/field"
 	"reflect"
+
+	"gorm.io/gen/field"
 )
 
 func Where(get field.GetField, value any) []Condition {
