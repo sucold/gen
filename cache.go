@@ -20,3 +20,7 @@ type CacheWhere struct {
 	Code  string
 	Where []Condition
 }
+
+type TypeOf interface {
+	Type() string
+}
