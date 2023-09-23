@@ -5,6 +5,10 @@ import "gorm.io/gorm/clause"
 // Float64 float64 type field
 type Float64 Field
 
+func (field Float64) Type() string {
+	return "float64"
+}
+
 // Eq equal to
 func (field Float64) Eq(value float64) Expr {
 	return expr{e: clause.Eq{Column: field.RawExpr(), Value: value}}
@@ -125,6 +129,10 @@ func (field Float64) toSlice(values ...float64) []interface{} {
 
 // Float32 float32 type field
 type Float32 Float64
+
+func (field Float32) Type() string {
+	return "float32"
+}
 
 // Eq equal to
 func (field Float32) Eq(value float32) Expr {

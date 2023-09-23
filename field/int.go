@@ -7,6 +7,10 @@ import (
 // Int int type field
 type Int Field
 
+func (field Int) Type() string {
+	return "int"
+}
+
 // Eq equal to
 func (field Int) Eq(value int) Expr {
 	return expr{e: clause.Eq{Column: field.RawExpr(), Value: value}}
@@ -157,6 +161,10 @@ func (field Int) toSlice(values ...int) []interface{} {
 
 // Int8 int8 type field
 type Int8 Int
+
+func (field Int8) Type() string {
+	return "int8"
+}
 
 // Eq equal to
 func (field Int8) Eq(value int8) Expr {
@@ -309,6 +317,10 @@ func (field Int8) toSlice(values ...int8) []interface{} {
 // Int16 int16 type field
 type Int16 Int
 
+func (field Int16) Type() string {
+	return "int16"
+}
+
 // Eq equal to
 func (field Int16) Eq(value int16) Expr {
 	return expr{e: clause.Eq{Column: field.RawExpr(), Value: value}}
@@ -459,6 +471,10 @@ func (field Int16) toSlice(values ...int16) []interface{} {
 
 // Int32 int32 type field
 type Int32 Int
+
+func (field Int32) Type() string {
+	return "int32"
+}
 
 // Eq equal to
 func (field Int32) Eq(value int32) Expr {
@@ -611,6 +627,10 @@ func (field Int32) toSlice(values ...int32) []interface{} {
 // Int64 int64 type field
 type Int64 Int
 
+func (field Int64) Type() string {
+	return "int64"
+}
+
 // Eq equal to
 func (field Int64) Eq(value int64) Expr {
 	return expr{e: clause.Eq{Column: field.RawExpr(), Value: value}}
@@ -761,6 +781,10 @@ func (field Int64) toSlice(values ...int64) []interface{} {
 
 // Uint uint type field
 type Uint Int
+
+func (field Uint) Type() string {
+	return "uint"
+}
 
 // Eq equal to
 func (field Uint) Eq(value uint) Expr {
@@ -913,6 +937,10 @@ func (field Uint) toSlice(values ...uint) []interface{} {
 // Uint8 uint8 type field
 type Uint8 Int
 
+func (field Uint8) Type() string {
+	return "uint8"
+}
+
 // Eq equal to
 func (field Uint8) Eq(value uint8) Expr {
 	return expr{e: clause.Eq{Column: field.RawExpr(), Value: value}}
@@ -1063,6 +1091,10 @@ func (field Uint8) toSlice(values ...uint8) []interface{} {
 
 // Uint16 uint16 type field
 type Uint16 Int
+
+func (field Uint16) Type() string {
+	return "uint16"
+}
 
 // Eq equal to
 func (field Uint16) Eq(value uint16) Expr {
@@ -1215,6 +1247,10 @@ func (field Uint16) toSlice(values ...uint16) []interface{} {
 // Uint32 uint32 type field
 type Uint32 Int
 
+func (field Uint32) Type() string {
+	return "uint32"
+}
+
 // Eq equal to
 func (field Uint32) Eq(value uint32) Expr {
 	return expr{e: clause.Eq{Column: field.RawExpr(), Value: value}}
@@ -1365,6 +1401,10 @@ func (field Uint32) toSlice(values ...uint32) []interface{} {
 
 // Uint64 uint64 type field
 type Uint64 Int
+
+func (field Uint64) Type() string {
+	return "uint64"
+}
 
 // Eq equal to
 func (field Uint64) Eq(value uint64) Expr {

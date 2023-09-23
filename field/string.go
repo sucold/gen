@@ -7,6 +7,10 @@ import (
 // String string type field
 type String Field
 
+func (field String) Type() string {
+	return "string"
+}
+
 // Eq equal to
 func (field String) Eq(value string) Expr {
 	return expr{e: clause.Eq{Column: field.RawExpr(), Value: value}}
@@ -131,6 +135,10 @@ func (field String) toSlice(values []string) []interface{} {
 
 // Bytes []byte type field
 type Bytes String
+
+func (field Bytes) Type() string {
+	return "bytes"
+}
 
 // Eq equal to
 func (field Bytes) Eq(value []byte) Expr {

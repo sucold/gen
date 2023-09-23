@@ -3,6 +3,10 @@ package field
 // Bool boolean type field
 type Bool Field
 
+func (field Bool) Type() string {
+	return "bool"
+}
+
 // Not ...
 func (field Bool) Not() Bool {
 	return Bool{field.not()}

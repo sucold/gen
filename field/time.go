@@ -10,6 +10,10 @@ import (
 // Time time type field
 type Time Field
 
+func (field Time) Type() string {
+	return "time"
+}
+
 // Eq equal to
 func (field Time) Eq(value time.Time) Expr {
 	return expr{e: clause.Eq{Column: field.RawExpr(), Value: value}}
