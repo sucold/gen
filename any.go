@@ -81,3 +81,8 @@ type Edges struct {
 	Unique bool
 	Fields []*Kv
 }
+type SqlWhere struct {
+	Name string
+	Data any
+	Args []any
+}
